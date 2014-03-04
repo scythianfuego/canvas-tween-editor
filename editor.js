@@ -44,6 +44,21 @@ var LineEditor = function(element, data, options) {
     this.Draw();
 }
 
+//tools
+
+
+LineEditor.prototype.formatTs = function(ts) {
+    var pad = "00000";
+    var str = Math.floor(ts%48000)+"";
+    var samples = pad.substring(0, pad.length - str.length) + str;
+    return Math.floor(ts/48000) + '.'+ samples + 's';
+}
+
+LineEditor.prototype.comment = function(str) {
+    var el = document.getElementById('comment');
+    el.innerHTML = str;
+}
+
 //handlers
 LineEditor.prototype.onmousewheel = function() {
     var self = this;
@@ -56,6 +71,14 @@ LineEditor.prototype.onmousewheel = function() {
 LineEditor.prototype.onmousemove = function() {
     var self = this;
     var handler = function(e) {
+        var tstoreadable = function(ts) {
+            
+        }
+        var ts = self.xToTimestamp(e.offsetX);
+        self.comment( self.formatTs(ts)  + '&emsp;' 
+            + self.formatTs(self.startTime) + '&emsp;' 
+            + self.formatTs(self.endTime) + '&emsp;' 
+         );
     }
     return handler;
 }
@@ -94,7 +117,7 @@ LineEditor.prototype.ondblclick = function() {
 //body
 LineEditor.prototype.xToTimestamp = function(x) {
     var proportion = (x - this.options.marginLeft ) / this.options.gridWidth;
-    var dt =  (this.endTime - this.startTime) * proportion;
+    var dt = (this.endTime - this.startTime) * proportion + this.startTime;
     return Math.round(dt);
 }
 
@@ -107,11 +130,11 @@ LineEditor.prototype.Zoom = function(e) {
     var zoomfactor = delta;    //120 per click, -> 1
 
     var proportion = Math.abs(self.startTime - self.endTime) * 0.05; // %
-    var proportion_y = t / Math.abs(self.startTime - self.endTime);
+    var proportion_y = (t - self.startTime) / Math.abs(self.startTime - self.endTime);
     zoomfactor *= proportion;
 
-    self.endTime += zoomfactor * proportion_y;
-    self.startTime -= zoomfactor * (1 - proportion_y);
+    self.endTime += zoomfactor * (1 - proportion_y);
+    self.startTime -= zoomfactor * proportion_y;
     
     //self.animForceUpdate = 1;
     self.Draw();
@@ -133,7 +156,7 @@ LineEditor.prototype.calcCellSize = function() {
 
     var self = this;
     var vStepCount = this.options.gridVSubdiv;
-    var minCellSizePx = this.options.gridHeight / vStepCount;     //square cell w=h
+    var minCellSizePx = 2 * this.options.gridHeight / vStepCount;     //square cell w=h
     var hStepCount = Math.floor(this.options.gridWidth / minCellSizePx);
     var cellSizeSamples = (this.endTime - this.startTime) / hStepCount; 
 
