@@ -1,4 +1,101 @@
 
+//render
+window.requestAnimFrame = (function(){
+  return  window.requestAnimationFrame       || 
+          window.webkitRequestAnimationFrame || 
+          window.mozRequestAnimationFrame    || 
+          window.oRequestAnimationFrame      || 
+          window.msRequestAnimationFrame     || 
+          function( callback ){
+            window.setTimeout(callback, 1000 / 60);
+          };
+})();
+
+window.cancelRequestAnimFrame = ( function() {
+    return window.cancelAnimationFrame          ||
+        window.webkitCancelRequestAnimationFrame    ||
+        window.mozCancelRequestAnimationFrame       ||
+        window.oCancelRequestAnimationFrame     ||
+        window.msCancelRequestAnimationFrame        ||
+        clearTimeout
+})();
+
+//line 
+
+var Polyline = function(editor) {
+    this.e = editor;
+    this.points = [];
+    this.highlighted = -1;
+}
+
+Polyline.prototype.Draw = function(ctx) {
+
+
+
+    for (var i = this.points.length - 1; i > 0; i--) {
+        var sx = this.e.timestampToX(this.points[i-1].x);
+        var sy = this.e.valueToY(this.points[i-1].y);
+        var ex = this.e.timestampToX(this.points[i].x);
+        var ey = this.e.valueToY(this.points[i].y);
+
+        if (this.highlighted == i)
+            ctx.fillStyle = 'darkorange';
+
+        this.e.DrawAnchoredLine(ctx, sx, sy, ex, ey);
+        ctx.fillStyle = '#000';
+    };
+
+    if (this.highlighted == 0)
+        ctx.fillStyle = 'darkorange';
+
+    this.e.DrawAnchor(ctx,
+        this.e.timestampToX(this.points[0].x), 
+        this.e.valueToY(this.points[0].y)
+    );
+} 
+
+Polyline.prototype.push = function(point) {
+    this.points.push(point);
+} 
+
+Polyline.prototype.highlight = function(x, y) {
+    this.highlighted = this.findPointAt(x, y);
+}
+
+Polyline.prototype.findPointAt = function(x, y) {
+    for (var i = this.points.length - 1; i >= 0; i--) {
+        var px = this.e.timestampToX(this.points[i].x);
+        var py = this.e.valueToY(this.points[i].y);
+        var delta = 5;
+        if (Math.abs(px - x) < delta && Math.abs(py - y))
+            return i;
+    }
+    return -1;
+}
+
+Polyline.prototype.movePoint = function(i, x, y) {
+    this.points[i].x = x;
+    this.points[i].y = y;
+}
+
+
+//mouse tools
+var Mouse = function(element) {
+    this.pressed = false;
+    this.startTime = null;
+    this.endTime = null;
+    this.time = null;
+    this.element = element;
+    this.cursor = 'auto';
+}
+
+Mouse.prototype.set = function(obj2) {
+    for (var attrname in obj2) { this[attrname] = obj2[attrname]; }
+    if (obj2.cursor) {
+        this.element.style.cursor = obj2.cursor;
+    }
+}
+
 
 //editor
 var LineEditor = function(element, data, options) {
@@ -12,6 +109,11 @@ var LineEditor = function(element, data, options) {
     this.width = canvas.width;
     this.height = canvas.height;
     this.data = data;
+    this.mouse = new Mouse(element);
+    this.line = new Polyline(this);
+
+    this.line.push({x: 0, y : 7000});
+    this.line.push({x: 96000, y: 65535})
 
     this.options = {
         min : 0,
@@ -40,12 +142,32 @@ var LineEditor = function(element, data, options) {
     }
     element.onclick = this.onclick();
     element.ondblclick = this.ondblclick(); 
+    element.oncontextmenu = this.oncontextmenu();
 
+    this.animLastFrameTimestamp = 0;
+    this.animForceUpdate = 0;
+    this.frameRequest = requestAnimFrame(this.updateAnimationFunc(this));
     this.Draw();
 }
 
-//tools
+LineEditor.prototype.destroy = function() {
+    cancelRequestAnimFrame(this.frameRequest);
+}
 
+LineEditor.prototype.updateAnimationFunc = function(self) {
+    var result = function(timestamp) {
+        //var delta = timestamp - self.animLastFrameTimestamp;
+        if (self.animForceUpdate) {
+            self.animLastFrameTimestamp = timestamp;
+            self.animForceUpdate = 0;
+            self.Draw();
+        }
+        self.frameRequest = requestAnimFrame(self.updateAnimationFunc(self));
+    }
+    return result;
+}
+
+//tools
 
 LineEditor.prototype.formatTs = function(ts) {
     var pad = "00000";
@@ -71,14 +193,46 @@ LineEditor.prototype.onmousewheel = function() {
 LineEditor.prototype.onmousemove = function() {
     var self = this;
     var handler = function(e) {
-        var tstoreadable = function(ts) {
-            
-        }
-        var ts = self.xToTimestamp(e.offsetX);
+        var x = e.offsetX ? e.offsetX : e.layerX;
+        var y = e.offsetY ? e.offsetY : e.layerY;
+        var ts = self.xToTimestamp(x);
         self.comment( self.formatTs(ts)  + '&emsp;' 
             + self.formatTs(self.startTime) + '&emsp;' 
             + self.formatTs(self.endTime) + '&emsp;' 
          );
+
+        self.animForceUpdate = 1;
+        self.mouse.set({ x : x, y : y});
+        if (!self.mouse.pointDrag)
+            self.line.highlight(x, y);
+
+        if (self.mouse.pressed) {
+            
+            if (Math.abs(self.mouse.originalX - x) < 3 && !self.mouse.drag)
+                return; //antijitter 5px;
+
+            if (self.line.highlighted != -1) {  //point dragging
+                var px = self.xToTimestamp(x);
+                var py = self.yToValue(y);
+                self.line.movePoint(self.line.highlighted, px, py);
+                self.mouse.set({ 
+                    pointDrag : true,
+                    cursor : 'move',
+                });
+                return;
+            }
+
+            var t = self.xToTimestamp(x);
+            var delta = self.mouse.time - t;
+            self.startTime =  self.mouse.startTime + delta;
+            self.endTime = self.mouse.endTime + delta;
+            self.mouse.set({ 
+                startTime : self.startTime,
+                endTime : self.endTime,
+                cursor : 'move',
+                drag : true
+            });
+        }
     }
     return handler;
 }
@@ -86,13 +240,29 @@ LineEditor.prototype.onmousemove = function() {
 LineEditor.prototype.onmousedown = function() {
     var self = this;
     var handler = function(e) {
+        e.preventDefault();
+        var x = e.offsetX ? e.offsetX : e.layerX;
+        var t = self.xToTimestamp(x);
+        self.mouse.set({ 
+            pressed : true,
+            time : t,
+            originalX : x,
+            startTime : self.startTime,
+            endTime : self.endTime
+        });
     }
+
     return handler;
 }
 
 LineEditor.prototype.onmouseup = function() {
     var self = this;
     var handler = function(e) {
+        self.mouse.set({ 
+            pressed : false,
+            cursor : 'auto'
+        });
+        event.preventDefault();
     }
     return handler;
 }
@@ -100,16 +270,37 @@ LineEditor.prototype.onmouseup = function() {
 LineEditor.prototype.onclick = function() {
     var self = this;
     var handler = function(e) {
+
+        if (self.mouse.drag || self.mouse.pointDrag) {  //last event was drag
+            self.mouse.set({ drag : false, pointDrag : false });
+            return;
+        }
+
+        var x = e.offsetX ? e.offsetX : e.layerX;
+        var y = e.offsetY ? e.offsetY : e.layerY;
+        x = self.xToTimestamp(x);
+        y = self.yToValue(y);
+        self.line.push({x : x, y : y});
+        self.animForceUpdate = 1; 
     }
     return handler;
 }
+
+LineEditor.prototype.oncontextmenu = function() {
+    var self = this;
+    var handler = function(e) {
+        e.preventDefault();
+        console.log('rightclick');
+    }
+    return handler;
+} 
 
 LineEditor.prototype.ondblclick = function() {
     var self = this;
     var handler = function(e) {
         self.startTime = 0;
         self.endTime = 48000 * 10 * 1;
-        self.Draw();
+        self.animForceUpdate = 1; 
     }
     return handler;
 }
@@ -120,6 +311,28 @@ LineEditor.prototype.xToTimestamp = function(x) {
     var dt = (this.endTime - this.startTime) * proportion + this.startTime;
     return Math.round(dt);
 }
+
+LineEditor.prototype.timestampToX = function(timestamp) {
+    var proportion = (timestamp - this.startTime) / (this.endTime - this.startTime);
+    var positionX = this.options.gridWidth * proportion + this.options.marginLeft;
+    return Math.round(positionX);
+}
+
+LineEditor.prototype.yToValue = function(y) {
+    var proportion = (y - this.options.marginTop ) / this.options.gridHeight;
+    var value = 0xffff * (1 - proportion);
+    if (value > 0xffff) value = 0xffff;
+    if (value < 0) value = 0;
+    return value;
+}
+
+LineEditor.prototype.valueToY = function(value) {
+    var proportion = (0xffff - value) / 0xffff;
+    var y =  this.options.gridHeight * proportion + this.options.marginTop;
+    return y;
+}
+
+
 
 LineEditor.prototype.Zoom = function(e) {
     var self = this;
@@ -136,8 +349,7 @@ LineEditor.prototype.Zoom = function(e) {
     self.endTime += zoomfactor * (1 - proportion_y);
     self.startTime -= zoomfactor * proportion_y;
     
-    //self.animForceUpdate = 1;
-    self.Draw();
+    self.animForceUpdate = 1; 
 }    
 
 LineEditor.prototype.GetContextFromCache = function(name) {
@@ -248,6 +460,12 @@ LineEditor.prototype.DrawGrid = function() {
 
     };
 
+
+    var x = Math.floor(this.mouse.x);
+    ctx.strokeStyle = "darkorange";
+    this.DrawLine(ctx, x, this.options.marginTop, x, this.options.gridHeight);
+
+
     this.ctx.drawImage(ctx.canvas, 0, 0);
 
 }
@@ -269,8 +487,14 @@ LineEditor.prototype.DrawAnchoredLine = function(ctx, sx, sy, ex, ey) {
     ctx.fill();
 }
 
+LineEditor.prototype.DrawAnchor = function(ctx, x, y) {
+    ctx.beginPath();
+    ctx.arc(x, y, 3, 0, 2*Math.PI);
+    ctx.fill();
+}
+
 LineEditor.prototype.Echo = function(ctx, text, x, y) {
-    ctx.font="12px Arial";
+    ctx.font="11px Arial";
     ctx.fillText(text, x, y);
 }
 
@@ -279,9 +503,7 @@ LineEditor.prototype.DrawData = function() {
 
     var ctx = this.GetContextFromCache('lines');
     ctx.strokeStyle = "#000";
-
-    this.DrawAnchoredLine(ctx, 0, this.height, this.width/2, 25);
-
+    this.line.Draw(ctx);
     this.ctx.drawImage(ctx.canvas, 0, 0);
 
 }
@@ -303,4 +525,5 @@ LineEditor.prototype.Draw = function() {
     this.DrawGrid();
     this.DrawData();
     this.DrawTickers();
+
 }
