@@ -11,6 +11,16 @@
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
+    <script type="text/javascript" src="https://rawgithub.com/scythianfuego/canvas-tween-editor/master/editor.js"></script>
+		<script type="text/javascript">
+			window.onload = function() {
+				var el= document.getElementById('gr');
+
+				var options = {};
+
+				var pp = new LineEditor(el, null, options);
+			}
+		</script>
   </head>
   <body>
     <div class="wrapper">
@@ -34,6 +44,11 @@
 <p>Timeline animation editor</p>
 
 <p>Demo:</p>
+
+<p>
+<div id="gr"></div>
+		<div id="comment">&nbsp;</div>
+</p>
 
 <p><a href="https://raw.github.com/scythianfuego/canvas-tween-editor/master/editor.htm">https://raw.github.com/scythianfuego/canvas-tween-editor/master/editor.htm</a></p>
       </section>
