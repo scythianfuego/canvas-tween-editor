@@ -39,7 +39,7 @@ Polyline.prototype.Draw = function(ctx) {
         var ey = this.e.valueToY(this.points[i].y);
 
         if (this.highlighted == i)
-            ctx.fillStyle = 'darkorange';
+            ctx.fillStyle = 'red';
 
         this.e.DrawAnchoredLine(ctx, sx, sy, ex, ey);
         ctx.fillStyle = '#000';
@@ -74,9 +74,29 @@ Polyline.prototype.findPointAt = function(x, y) {
 }
 
 Polyline.prototype.movePoint = function(i, x, y) {
-    this.points[i].x = x;
     this.points[i].y = y;
+    if (i != 0)
+        this.points[i].x = x;
 }
+
+Polyline.prototype.deletePoint = function(i) {
+    if (i > 0)
+        this.points.splice(i, 1);
+}
+
+Polyline.prototype.addPoint = function(x, y) {
+    var l = this.points.length - 1;
+    if (x > this.points[l].x) {
+        this.points.push({x : x, y : y});
+    } else {
+        for (var i = this.points.length - 1; i > 0; i--)
+            if (this.points[i-1].x < x && this.points[i].x > x) {
+                this.points.splice(i, 0, {x : x, y : y});
+                return;
+            }
+    }
+}
+
 
 
 //mouse tools
@@ -208,7 +228,7 @@ LineEditor.prototype.onmousemove = function() {
 
         if (self.mouse.pressed) {
             
-            if (Math.abs(self.mouse.originalX - x) < 3 && !self.mouse.drag)
+            if (Math.abs(self.mouse.originalX - x) < 5 && !self.mouse.drag)
                 return; //antijitter 5px;
 
             if (self.line.highlighted != -1) {  //point dragging
@@ -280,7 +300,8 @@ LineEditor.prototype.onclick = function() {
         var y = e.offsetY ? e.offsetY : e.layerY;
         x = self.xToTimestamp(x);
         y = self.yToValue(y);
-        self.line.push({x : x, y : y});
+
+        self.line.addPoint(x, y);
         self.animForceUpdate = 1; 
     }
     return handler;
@@ -290,7 +311,10 @@ LineEditor.prototype.oncontextmenu = function() {
     var self = this;
     var handler = function(e) {
         e.preventDefault();
-        console.log('rightclick');
+        if (self.line.highlighted) {
+            self.line.deletePoint(self.line.highlighted);
+            self.animForceUpdate = 1;
+        }
     }
     return handler;
 } 
