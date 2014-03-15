@@ -25,12 +25,10 @@ window.cancelRequestAnimFrame = ( function() {
 var Polyline = function(editor) {
     this.e = editor;
     this.points = [];
-    this.highlighted = -1;
+    this.highlighted = [];
 }
 
 Polyline.prototype.Draw = function(ctx) {
-
-
 
     for (var i = this.points.length - 1; i > 0; i--) {
         var sx = this.e.timestampToX(this.points[i-1].x);
@@ -38,15 +36,15 @@ Polyline.prototype.Draw = function(ctx) {
         var ex = this.e.timestampToX(this.points[i].x);
         var ey = this.e.valueToY(this.points[i].y);
 
-        if (this.highlighted == i)
+        if (this.highlighted.indexOf(i) != -1)
             ctx.fillStyle = 'red';
 
         this.e.DrawAnchoredLine(ctx, sx, sy, ex, ey);
         ctx.fillStyle = '#000';
     };
 
-    if (this.highlighted == 0)
-        ctx.fillStyle = 'darkorange';
+    if (this.highlighted.indexOf(0) != -1)  //first point
+        ctx.fillStyle = 'red';
 
     this.e.DrawAnchor(ctx,
         this.e.timestampToX(this.points[0].x), 
@@ -58,30 +56,102 @@ Polyline.prototype.push = function(point) {
     this.points.push(point);
 } 
 
-Polyline.prototype.highlight = function(x, y) {
-    this.highlighted = this.findPointAt(x, y);
-}
-
 Polyline.prototype.findPointAt = function(x, y) {
     for (var i = this.points.length - 1; i >= 0; i--) {
         var px = this.e.timestampToX(this.points[i].x);
         var py = this.e.valueToY(this.points[i].y);
-        var delta = 5;
-        if (Math.abs(px - x) < delta && Math.abs(py - y))
+        var delta = 10;
+        if (Math.abs(px - x) < delta && Math.abs(py - y) < delta)
             return i;
     }
     return -1;
 }
 
-Polyline.prototype.movePoint = function(i, x, y) {
-    this.points[i].y = y;
-    if (i != 0)
-        this.points[i].x = x;
+Polyline.prototype.beforeMove = function(i) {
+    var selectionOffsets = [];
+    var dy_arr = [];
+    this.highlighted.sort(function(a,b) { return a - b; });
+    for (j in this.highlighted) {   //point index
+        var k = this.highlighted[j];
+        var n = this.highlighted[0];
+        var dx = this.points[k].x - this.points[n].x;
+        var dy = this.points[k].y - this.points[n].y;
+        selectionOffsets[j] =  { dx : dx, dy : dy }
+        dy_arr.push(dy);
+    }
+    this.selectionOffsets = selectionOffsets;
+    var maxOffsetY = Math.max.apply( Math, dy_arr );
+    var minOffsetY = Math.min.apply( Math, dy_arr );
+    this.maxY = 0xffff-maxOffsetY;
+    this.minY = -minOffsetY;
+    this.maxOffset = selectionOffsets[selectionOffsets.length-1].dx;
+}
+
+
+Polyline.prototype.movePoints = function(i, x, y) {
+
+    var index = this.highlighted.indexOf(i);
+    x -= this.selectionOffsets[index].dx;
+    y -= this.selectionOffsets[index].dy;
+ 
+
+    //bounding box
+    var first = this.highlighted[0];
+    if (first != 0)
+        if (x < this.points[first-1].x)
+            x = this.points[first-1].x;
+
+    var last = this.highlighted[this.highlighted.length-1];
+    if (this.points.length-1 > last)
+        if (x + this.maxOffset > this.points[last+1].x)
+            x = this.points[last+1].x - this.maxOffset;
+
+    if (y > this.maxY)
+        y = this.maxY;
+
+    if (y < this.minY)
+        y = this.minY;
+
+    //move
+    for (j in this.highlighted) {
+        var k = this.highlighted[j];    //point index
+        if (first == k) {
+            this.points[k].y = y;
+            if (k != 0)
+                this.points[k].x = x;
+        } else {
+            this.points[k].y = this.points[first].y + this.selectionOffsets[j].dy;
+            if (k != 0)
+                this.points[k].x = this.points[first].x + this.selectionOffsets[j].dx;
+        }
+    }
+
+
 }
 
 Polyline.prototype.deletePoint = function(i) {
     if (i > 0)
         this.points.splice(i, 1);
+}
+
+Polyline.prototype.highlightPoint = function(i) {
+    if (i >= 0) {
+        if (this.highlighted.indexOf(i) == -1)
+            this.highlighted.push(i);
+    }
+}
+
+Polyline.prototype.highlightRange = function(x1, x2) {
+    if (x1 > x2)
+        x1 = [x2, x2 = x1][0];  //swap
+
+    for (var i = 0; i < this.points.length ; i++)
+        if (this.points[i].x < x2 && this.points[i].x > x1)
+            this.highlighted.push(i);
+}
+
+Polyline.prototype.clearHighlight = function(i) {
+    this.highlighted = [];
 }
 
 Polyline.prototype.addPoint = function(x, y) {
@@ -104,9 +174,12 @@ var Mouse = function(element) {
     this.pressed = false;
     this.startTime = null;
     this.endTime = null;
+    this.drag = false;
+    this.pointDrag = false;
     this.time = null;
     this.element = element;
     this.cursor = 'auto';
+    this.foundPoint = -1;
 }
 
 Mouse.prototype.set = function(obj2) {
@@ -124,7 +197,8 @@ var LineEditor = function(element, data, options) {
     var canvas = document.createElement("canvas");
     canvas.width = 800;
     canvas.height = 250;
-    element.appendChild(canvas)
+    element.appendChild(canvas);
+    this.element = element;
     this.ctx = canvas.getContext("2d");
     this.width = canvas.width;
     this.height = canvas.height;
@@ -132,8 +206,7 @@ var LineEditor = function(element, data, options) {
     this.mouse = new Mouse(element);
     this.line = new Polyline(this);
 
-    this.line.push({x: 0, y : 7000});
-    this.line.push({x: 96000, y: 65535})
+    this.line.push({x: 0, y : 32767});
 
     this.options = {
         min : 0,
@@ -155,14 +228,12 @@ var LineEditor = function(element, data, options) {
     element.onmousemove = this.onmousemove();
     element.onmousedown = this.onmousedown();
     element.onmouseup = this.onmouseup();
+    element.oncontextmenu = this.oncontextmenu();
     if ('onwheel' in document) {
         element.onwheel = this.onmousewheel();
     } else {
         element.onmousewheel = this.onmousewheel();
     }
-    element.onclick = this.onclick();
-    element.ondblclick = this.ondblclick(); 
-    element.oncontextmenu = this.oncontextmenu();
 
     this.animLastFrameTimestamp = 0;
     this.animForceUpdate = 0;
@@ -202,45 +273,113 @@ LineEditor.prototype.comment = function(str) {
 }
 
 //handlers
+/*
+click at point = select one
+drag at selected point =  drag
+left mouse drag = select
+click = deselect
+click = add point
+click = split
+
+right click at point = delete
+right drag = bg-drag
+
+wheel = zoom
+
+left click: 
+check if drag
+check if point is under and points selected
+*/
+
+LineEditor.prototype.calcOffsets = function(event) {
+    if(!event.hasOwnProperty('offsetX')) {
+        event.offsetX = event.layerX - event.currentTarget.offsetLeft;
+        event.offsetY = event.layerY - event.currentTarget.offsetTop;
+    }
+}
+
 LineEditor.prototype.onmousewheel = function() {
     var self = this;
-    return function(e) {
-        e.preventDefault();
-        self.Zoom(e);
+    return function(event) {
+        event.preventDefault();
+        self.Zoom(event);
     }
 }
 
 LineEditor.prototype.onmousemove = function() {
     var self = this;
-    var handler = function(e) {
-        var x = e.offsetX ? e.offsetX : e.layerX;
-        var y = e.offsetY ? e.offsetY : e.layerY;
+    var handler = function(event) {
+        self.animForceUpdate = 1;
+        self.calcOffsets(event);
+        var x = event.offsetX;
+        var y = event.offsetY;
         var ts = self.xToTimestamp(x);
         self.comment( self.formatTs(ts)  + '&emsp;' 
             + self.formatTs(self.startTime) + '&emsp;' 
             + self.formatTs(self.endTime) + '&emsp;' 
-         );
-
-        self.animForceUpdate = 1;
+        );
         self.mouse.set({ x : x, y : y});
-        if (!self.mouse.pointDrag)
-            self.line.highlight(x, y);
 
-        if (self.mouse.pressed) {
-            
-            if (Math.abs(self.mouse.originalX - x) < 5 && !self.mouse.drag)
-                return; //antijitter 5px;
+        var foundPoint = self.line.findPointAt(x, y);
+        if (!self.mouse.pressed) {
+            self.mouse.set({foundPoint : foundPoint});
+            if (foundPoint != -1)
+                self.mouse.set({cursor : 'pointer'});
+            else 
+                self.mouse.set({cursor : 'auto'});
+        }
 
-            if (self.line.highlighted != -1) {  //point dragging
+        
+        //drag detection: antijitter 5px;
+        if ((Math.abs(self.mouse.originalX - x) > 5 || Math.abs(self.mouse.originalY - y) > 5)
+            && !self.mouse.drag && !self.mouse.pointDrag && self.mouse.pressed) {
+            if(self.mouse.foundPoint == -1) {
+                self.mouse.drag = true; 
+            } else {
+                self.mouse.pointDrag = true; 
+                self.mouse.pointDragAnchor = self.mouse.foundPoint; 
+                self.line.highlightPoint(self.mouse.foundPoint);
+                self.line.beforeMove(self.mouse.pointDragAnchor);
+            }
+        }
+
+        if (!self.mouse.drag && !self.mouse.pointDrag)
+            return; //all the other actions are made in onclick
+
+        if (self.mouse.button == 1 && self.mouse.pressed) {     //left
+
+            if (self.mouse.pointDrag) {   //point dragging
                 var px = self.xToTimestamp(x);
                 var py = self.yToValue(y);
-                self.line.movePoint(self.line.highlighted, px, py);
+                self.line.movePoints(self.mouse.pointDragAnchor, px, py);
+                return;
+            }
+
+            //range selection
+            var x1 = self.mouse.time;
+            var x2 = ts;
+            self.line.clearHighlight();
+            self.line.highlightRange(x1, x2);
+
+            /*if (self.line.highlighted.l != -1) {  //point dragging
+                var px = self.xToTimestamp(x);
+                var py = self.yToValue(y);
+
+                var point = self.line.findPointAt(x, y);
+                if (point == -1)
+                    return;
+
+                self.line.highlighted = point;
+                self.line.movePoint(point, px, py);
                 self.mouse.set({ 
-                    pointDrag : true,
+                    pointDrag : point,
                     cursor : 'move',
                 });
                 return;
-            }
+            }*/
+        }
+
+        if (self.mouse.button == 3 && self.mouse.pressed) {     //right
 
             var t = self.xToTimestamp(x);
             var delta = self.mouse.time - t;
@@ -259,17 +398,36 @@ LineEditor.prototype.onmousemove = function() {
 
 LineEditor.prototype.onmousedown = function() {
     var self = this;
-    var handler = function(e) {
-        e.preventDefault();
-        var x = e.offsetX ? e.offsetX : e.layerX;
+    var handler = function(event) {
+        self.animForceUpdate = 1;
+        event.preventDefault();
+        self.calcOffsets(event);
+        var x = event.offsetX;
+        var y = event.offsetY;
         var t = self.xToTimestamp(x);
+
+        var foundPoint = self.line.findPointAt(x, y);
+        setTimeout(function(){
+            if (foundPoint != -1) {
+                self.mouse.set({ cursor : 'move' });
+            } else {
+                self.mouse.set({ cursor : 'text' });
+            }
+        }, 10);
+
+        if (self.line.highlighted.length == 1)
+            self.line.clearHighlight();
+
         self.mouse.set({ 
             pressed : true,
             time : t,
             originalX : x,
+            originalY : y,
             startTime : self.startTime,
-            endTime : self.endTime
+            endTime : self.endTime,
+            button : event.which
         });
+
     }
 
     return handler;
@@ -277,57 +435,95 @@ LineEditor.prototype.onmousedown = function() {
 
 LineEditor.prototype.onmouseup = function() {
     var self = this;
-    var handler = function(e) {
+    var handler = function(event) {
+        self.calcOffsets(event);
+        var x = event.offsetX;
+        var y = event.offsetY;
         self.mouse.set({ 
             pressed : false,
             cursor : 'auto'
         });
+
+        if (self.mouse.drag || self.mouse.pointDrag) {  
+            self.mouse.set({ drag : false, pointDrag : false });    //reset drag event
+        }
+
+        //if (self.line.highlighted.length == 1)
+        //    self.line.clearHighlight();
+
+        if (Math.abs(self.mouse.originalX - x) < 3) {  //click
+            if (self.mouse.button == 1)
+                self.onleftclick(event);
+            if (self.mouse.button == 3)
+                self.onrightclick(event);
+        }
+        //event.preventDefault();
+    }
+    return handler;
+}
+
+LineEditor.prototype.onleftclick = function(event) {
+    var self = this;
+    self.animForceUpdate = 1;
+
+    //handle click
+    self.calcOffsets(event);
+    var x = event.offsetX;
+    var y = event.offsetY;
+
+    //find point at xy
+    var point = self.line.findPointAt(x, y);
+    if (point != -1) {  //select point
+        self.line.clearHighlight();
+        self.line.highlightPoint(point);
+    } else {
+        if (event.which == 1) {     //left
+
+            if (self.line.highlighted.length > 0) { //deselect
+                self.line.clearHighlight();
+                return;
+            }
+
+            x = self.xToTimestamp(x);
+            y = self.yToValue(y);
+            self.line.addPoint(x, y);     
+        }    
+    }
+}
+
+LineEditor.prototype.onrightclick = function(event) {
+    var self = this;
+    event.preventDefault();
+    self.calcOffsets(event);
+    var x = event.offsetX;
+    var y = event.offsetY;
+    var point = self.line.findPointAt(x, y);
+    if (point != -1) {  //select point
+        self.line.deletePoint(point);
+        this.mouse.foundPoint = -1;
+        self.animForceUpdate = 1;
+    }
+} 
+
+LineEditor.prototype.oncontextmenu = function(event) {
+    var self = this;
+    var handler = function(event) {
         event.preventDefault();
     }
     return handler;
 }
 
-LineEditor.prototype.onclick = function() {
-    var self = this;
-    var handler = function(e) {
-
-        if (self.mouse.drag || self.mouse.pointDrag) {  //last event was drag
-            self.mouse.set({ drag : false, pointDrag : false });
-            return;
-        }
-
-        var x = e.offsetX ? e.offsetX : e.layerX;
-        var y = e.offsetY ? e.offsetY : e.layerY;
-        x = self.xToTimestamp(x);
-        y = self.yToValue(y);
-
-        self.line.addPoint(x, y);
-        self.animForceUpdate = 1; 
-    }
-    return handler;
-}
-
-LineEditor.prototype.oncontextmenu = function() {
-    var self = this;
-    var handler = function(e) {
-        e.preventDefault();
-        if (self.line.highlighted) {
-            self.line.deletePoint(self.line.highlighted);
-            self.animForceUpdate = 1;
-        }
-    }
-    return handler;
-} 
-
+/*
 LineEditor.prototype.ondblclick = function() {
     var self = this;
-    var handler = function(e) {
+    var handler = function(event) {
         self.startTime = 0;
         self.endTime = 48000 * 10 * 1;
         self.animForceUpdate = 1; 
     }
     return handler;
 }
+*/
 
 //body
 LineEditor.prototype.xToTimestamp = function(x) {
@@ -358,12 +554,12 @@ LineEditor.prototype.valueToY = function(value) {
 
 
 
-LineEditor.prototype.Zoom = function(e) {
+LineEditor.prototype.Zoom = function(event) {
     var self = this;
 
-    var x = e.offsetX ? e.offsetX : e.layerX;
+    var x = event.offsetX ? event.offsetX : event.layerX;
     var t = self.xToTimestamp(x);
-    var delta = e.wheelDelta ? (-e.wheelDelta / 120) :  e.deltaY;
+    var delta = event.wheelDelta ? (-event.wheelDelta / 120) :  event.deltaY;
     var zoomfactor = delta;    //120 per click, -> 1
 
     var proportion = Math.abs(self.startTime - self.endTime) * 0.05; // %
@@ -471,12 +667,12 @@ LineEditor.prototype.DrawGrid = function() {
 
     stepCount = this.options.gridVSubdiv;
     var vstep = height / stepCount;
-    for (var i = 8; i >= 0; i--) {
+    for (var i = stepCount; i >= 0; i--) {
         var y = Math.floor(i*vstep) + this.options.marginTop;
-        if (i == 4)
+        if (i == stepCount/2)
             ctx.strokeStyle = "#0c0";
         this.DrawLine(ctx, this.options.marginLeft, y, width+this.options.marginLeft, y);
-        if (i == 4)
+        if (i == stepCount/2)
             ctx.strokeStyle = "#ccc";
 
         if (i % 2 == 0)
@@ -484,15 +680,33 @@ LineEditor.prototype.DrawGrid = function() {
 
     };
 
-
+    ctx.strokeStyle = "rgb(255, 140, 0)";
+    ctx.fillStyle   = "rgba(255, 165, 0, 0.2)";
     var x = Math.floor(this.mouse.x);
-    ctx.strokeStyle = "darkorange";
-    this.DrawLine(ctx, x, this.options.marginTop, x, this.options.gridHeight);
+    this.DrawLine(ctx, x, this.options.marginTop, x, this.options.gridHeight+this.options.marginTop);
+    if (this.mouse.drag && this.mouse.button == 1) {
+        var x1 = this.timestampToX(this.mouse.time);
+        this.DrawBox(ctx,
+            x1, this.options.marginTop, 
+            x, this.options.gridHeight+this.options.marginTop);
 
+        this.DrawLine(ctx, x1, this.options.marginTop, x1, this.options.gridHeight+this.options.marginTop);
+    }
 
+    if (this.mouse.foundPoint != -1) {
+        var x = this.timestampToX(this.line.points[this.mouse.foundPoint].x);
+        var y = this.valueToY(this.line.points[this.mouse.foundPoint].y);
+        this.DrawAnchorHighlight(ctx, x, y);
+    }
     this.ctx.drawImage(ctx.canvas, 0, 0);
 
 }
+
+LineEditor.prototype.DrawBox = function (ctx, sx, sy, ex, ey) {
+    ctx.rect(sx, sy, ex - sx, ey - sy);
+    ctx.fill();
+}
+
 
 LineEditor.prototype.DrawLine = function (ctx, sx, sy, ex, ey) {
     ctx.beginPath();
@@ -513,7 +727,14 @@ LineEditor.prototype.DrawAnchoredLine = function(ctx, sx, sy, ex, ey) {
 
 LineEditor.prototype.DrawAnchor = function(ctx, x, y) {
     ctx.beginPath();
-    ctx.arc(x, y, 3, 0, 2*Math.PI);
+    ctx.arc(x, y, 3, 0, 2*Math.PI); 
+    ctx.fill();
+}
+
+LineEditor.prototype.DrawAnchorHighlight = function(ctx, x, y) {
+    ctx.fillStyle = "rgba(255, 165, 0, 0.4)";
+    ctx.beginPath();
+    ctx.arc(x, y, 10, 0, 2*Math.PI);    //x,y,radius,angles
     ctx.fill();
 }
 
