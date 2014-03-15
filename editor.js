@@ -732,7 +732,7 @@ LineEditor.prototype.DrawAnchor = function(ctx, x, y) {
 }
 
 LineEditor.prototype.DrawAnchorHighlight = function(ctx, x, y) {
-    ctx.fillStyle = "rgba(255, 165, 0, 0.4)";
+    ctx.fillStyle = "rgba(255, 165, 0, 0.6)";
     ctx.beginPath();
     ctx.arc(x, y, 10, 0, 2*Math.PI);    //x,y,radius,angles
     ctx.fill();
