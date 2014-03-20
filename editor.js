@@ -193,10 +193,27 @@ Mouse.prototype.set = function(obj2) {
 //editor
 var LineEditor = function(element, data, options) {
 
-    this.options = options;
+    var defaults = {
+        width : 800,
+        height : 250,
+        startTime : 0,
+        endTime : 10 * 48000,
+        marginTop : 5,
+        marginBottom : 15,
+        marginLeft : 40,
+        marginRight : 10,
+        fontSize : 12,
+        gridVSubdiv : 8,
+
+    }
+
+    //overwrite options
+    this.options = defaults;
+    for (var attrname in options) {  this.options[attrname] = options[attrname]; }
+
     var canvas = document.createElement("canvas");
-    canvas.width = 800;
-    canvas.height = 250;
+    canvas.width = this.options.width;
+    canvas.height = this.options.height;
     element.appendChild(canvas);
     this.element = element;
     this.ctx = canvas.getContext("2d");
@@ -208,27 +225,18 @@ var LineEditor = function(element, data, options) {
 
     this.line.push({x: 0, y : 32767});
 
-    this.options = {
-        min : 0,
-        max : 60 * 48000,
-        marginTop : 5,
-        marginBottom : 15,
-        marginLeft : 40,
-        marginRight : 10,
-        fontSize : 12,
-        gridVSubdiv : 8
-    }
-
     this.options.gridHeight = this.height - this.options.marginTop - this.options.marginBottom;
     this.options.gridWidth = this.width - this.options.marginLeft - this.options.marginRight;
 
-    this.startTime = 0;
-    this.endTime = 48000 * 10 * 1;
+    this.startTime = this.options.startTime;
+    this.endTime = this.options.endTime;
 
     element.onmousemove = this.onmousemove();
     element.onmousedown = this.onmousedown();
     element.onmouseup = this.onmouseup();
     element.oncontextmenu = this.oncontextmenu();
+    this.dblclick = this.ondblclick();
+
     if ('onwheel' in document) {
         element.onwheel = this.onmousewheel();
     } else {
@@ -360,23 +368,6 @@ LineEditor.prototype.onmousemove = function() {
             var x2 = ts;
             self.line.clearHighlight();
             self.line.highlightRange(x1, x2);
-
-            /*if (self.line.highlighted.l != -1) {  //point dragging
-                var px = self.xToTimestamp(x);
-                var py = self.yToValue(y);
-
-                var point = self.line.findPointAt(x, y);
-                if (point == -1)
-                    return;
-
-                self.line.highlighted = point;
-                self.line.movePoint(point, px, py);
-                self.mouse.set({ 
-                    pointDrag : point,
-                    cursor : 'move',
-                });
-                return;
-            }*/
         }
 
         if (self.mouse.button == 3 && self.mouse.pressed) {     //right
@@ -415,8 +406,8 @@ LineEditor.prototype.onmousedown = function() {
             }
         }, 10);
 
-        if (self.line.highlighted.length == 1)
-            self.line.clearHighlight();
+        if (foundPoint != -1 && self.line.highlighted.indexOf(foundPoint) == -1)
+            self.line.clearHighlight();     //clear previous selection
 
         self.mouse.set({ 
             pressed : true,
@@ -503,6 +494,7 @@ LineEditor.prototype.onrightclick = function(event) {
         this.mouse.foundPoint = -1;
         self.animForceUpdate = 1;
     }
+    self.dblclick();
 } 
 
 LineEditor.prototype.oncontextmenu = function(event) {
@@ -511,6 +503,30 @@ LineEditor.prototype.oncontextmenu = function(event) {
         event.preventDefault();
     }
     return handler;
+}
+
+LineEditor.prototype.ondblclick = function() {
+
+    var self = this;
+    var timeout = 0, clicked = false;
+    return function() {
+        if( clicked ) {
+            clearTimeout(timeout);
+            clicked = false;
+            if (self.line.points.length > 1) {
+                self.endTime = self.line.points[self.line.points.length-1].x;
+            } else {
+                self.endTime = 48000 * 10 * 1;
+            }
+            self.startTime = 0;
+            self.animForceUpdate = 1; 
+        } else {
+            clicked = true;
+            timeout = setTimeout( function() {
+                clicked = false;
+            }, 300 );
+        }
+    };
 }
 
 /*

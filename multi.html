@@ -1,0 +1,105 @@
+<html>
+	<head>
+		<style type="text/css">
+			body {
+				font-family: "Open Sans", Arial, sans-serif;
+				font-size: 12px;
+				text-align: right;
+			}
+			#comment {
+				padding: 10px;
+				margin-top: 20px;
+				border-radius: 5px;
+				font-size: 0.9rem;
+				font-family: Arial;
+				color: darkgreen;
+				background: #ddd;
+				width: 600px;
+			} 
+			.half {
+				width: 50%;
+				display: inline-block;
+				vertical-align: top;
+			}
+			.full {
+				width: 100%;
+				display: inline-block;
+				vertical-align: top;
+			}
+			.tween {
+				width: 100%;
+			}
+		</style>
+		<script type="text/javascript" src="editor.js"></script>
+		<script type="text/javascript">
+			window.onload = function() {
+				var options = { 
+					height : 100, 
+					width : document.getElementById('gr1').offsetWidth,
+					gridVSubdiv : 4 
+				};
+				var onoffOptions = JSON.parse(JSON.stringify(options));
+				onoffOptions.height = 50;
+				onoffOptions.gridVSubdiv = 2;
+
+				var el= document.getElementById('gr1');
+				var pp = new LineEditor(el, null, onoffOptions);
+
+				var el= document.getElementById('gr2');
+				var pp = new LineEditor(el, null, options);
+
+				var el= document.getElementById('gr3');
+				var pp = new LineEditor(el, null, options);
+
+				var el= document.getElementById('gr4');
+				var pp = new LineEditor(el, null, options);
+
+				var el= document.getElementById('gr5');
+				var pp = new LineEditor(el, null, onoffOptions);
+
+				var el= document.getElementById('gr6');
+				var pp = new LineEditor(el, null, options);
+
+				var el= document.getElementById('gr7');
+				var pp = new LineEditor(el, null, options);
+
+				var el= document.getElementById('gr8');
+				var pp = new LineEditor(el, null, options);
+
+				var mainOptions = { 
+					height : 200, 
+					width : document.getElementById('gr9').offsetWidth,
+					gridVSubdiv : 8
+				}
+
+				var el= document.getElementById('gr9');
+				var pp = new LineEditor(el, null, mainOptions);
+			}
+		</script>
+	</head>
+	<body>
+		<div class="half">
+			On/Off
+			<div id="gr1" class="tween"></div>
+			Frequency
+			<div id="gr2" class="tween"></div>
+			Amplitude
+			<div id="gr3" class="tween"></div>
+			Impulse Width
+			<div id="gr4" class="tween"></div>
+		</div><div class="half">
+			On/Off
+			<div id="gr5" class="tween"></div>
+			Frequency
+			<div id="gr6" class="tween"></div>
+			Amplitude
+			<div id="gr7" class="tween"></div>
+			Impulse Width
+			<div id="gr8" class="tween"></div>
+		</div>
+		<div class="full">
+			<div id="gr9" class="tween"></div>
+		</div>
+		<div id="comment">&nbsp;</div>
+	</body>
+</html>
