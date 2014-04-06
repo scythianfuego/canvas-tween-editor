@@ -191,7 +191,7 @@ Mouse.prototype.set = function(obj2) {
 
 
 //editor
-var LineEditor = function(element, data, options) {
+var LineEditor = function(element, options) {
 
     var defaults = {
         width : 800,
@@ -204,7 +204,7 @@ var LineEditor = function(element, data, options) {
         marginRight : 10,
         fontSize : 12,
         gridVSubdiv : 8,
-
+        font: "11px Arial"
     }
 
     //overwrite options
@@ -219,7 +219,6 @@ var LineEditor = function(element, data, options) {
     this.ctx = canvas.getContext("2d");
     this.width = canvas.width;
     this.height = canvas.height;
-    this.data = data;
     this.mouse = new Mouse(element);
     this.line = new Polyline(this);
 
@@ -755,7 +754,7 @@ LineEditor.prototype.DrawAnchorHighlight = function(ctx, x, y) {
 }
 
 LineEditor.prototype.Echo = function(ctx, text, x, y) {
-    ctx.font="11px Arial";
+    ctx.font = this.options.font;
     ctx.fillText(text, x, y);
 }
 

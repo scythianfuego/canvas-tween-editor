@@ -1,0 +1,129 @@
+body {
+	font-family: Arial, sans-serif;
+	font-weight: 300;
+	font-size: 0.8rem;
+	padding: 0 10px;
+	margin: 0;
+}
+input[type=text] {
+	border: none;
+	border-bottom: 1px solid #999;
+	padding: 3px 3px;
+	width: 3em;
+	color: #000;
+
+	outline:none;
+    -webkit-appearance:none;
+    -webkit-focus-ring-color:rgba(0 0 0 0);
+}
+input[type=checkbox] {
+	vertical-align: middle;
+}
+#comment {
+	font-family: Arial, sans-serif;
+	font-weight: 400;
+	font-size: 0.9rem;
+	color: #000;
+	position: absolute;
+	right: 0px;
+	top: -20px;
+} 
+.left-panel {
+	width: 200px;
+	display: inline-block;
+}
+.right-panel {
+	width: 80%;
+	display: inline-block;
+	box-sizing: border-box;
+	padding: 5px 0 0 15px;
+	vertical-align: top;
+}
+.graphs-panel {
+	width: 85%; 
+	display: inline-block;
+}
+.tools-panel {
+	width: 15%; 
+	box-sizing: border-box;
+	display: inline-block; 
+	vertical-align: top; 
+	padding-left: 20px;
+}
+.full {
+	width: 100%;
+	display: inline-block;
+	vertical-align: top;
+	position: relative;
+}
+.tween {
+	width: 100%;
+}
+.counter {
+	color: #000;
+	font-size: 1.1rem;
+	font-family: "Open Sans", Arial, sans-serif;
+	font-weight: 400;
+	padding: 0 5px;
+}
+.fakelink {
+	font-size: 1.2rem;
+	color: #FFB356;
+	cursor: pointer;
+}
+.fakelink:hover {
+	color: #888;
+	color: darkorange;
+}
+.track-title {
+	color: #000;
+	font-size: 1.2rem;
+	font-family: "Open Sans", Arial, sans-serif;
+	padding-right: 10px;
+	width: 130px;
+	font-weight: 300;
+}
+button {
+	background-image: -webkit-linear-gradient(top, rgb(252, 252, 252) 0%, rgb(224, 224, 224) 100%);
+	background-origin: padding-box;
+	background-size: auto;
+	border: #ccc 1px solid;
+	border-radius: 2px;
+	border-style: solid;
+	border-width: 1px;
+	box-sizing: border-box;
+	cursor: pointer;
+	display: inline-block;
+	font-family: Arial, verdana, sans-serif;
+	font-size: 1rem;
+	font-style: normal;
+	font-variant: normal;
+	font-weight: normal;
+	line-height: 12px;
+	margin: 0 0 10px 0;
+	padding: 5px 10px 5px 10px;
+	text-align: center;
+	text-decoration: none;
+	text-transform: none;
+	vertical-align: middle;
+
+	outline:none;
+    -webkit-appearance:none;
+    -webkit-focus-ring-color:rgba(0 0 0 0);
+}
+button:hover {
+	background-image: -webkit-linear-gradient(top, rgb(240, 240, 240) 0%, rgb(210, 210, 210) 100%);
+}
+button:active {
+	background-image: -webkit-linear-gradient(bottom, rgb(252, 252, 252) 0%, rgb(224, 224, 224) 100%);
+}
+.text-button {
+	font-size: 0.8rem;
+}
+label {
+	display: inline-block;
+	width: 4em;
+}
+label.cb {
+	width: auto;
+}
