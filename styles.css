@@ -80,8 +80,9 @@ input[type=checkbox] {
 	font-size: 1.2rem;
 	font-family: "Open Sans", Arial, sans-serif;
 	padding-right: 10px;
-	width: 130px;
 	font-weight: 300;
+	width: 122px;
+	display: inline-block;
 }
 button {
 	background-image: -webkit-linear-gradient(top, rgb(252, 252, 252) 0%, rgb(224, 224, 224) 100%);
@@ -126,4 +127,19 @@ label {
 }
 label.cb {
 	width: auto;
+}
+
+
+.left-right-counter {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+input.left-right-counter-value {
+	font-size: 1rem;
+	text-align: center;
+	width: 1.5rem;
+	border: none;
 }

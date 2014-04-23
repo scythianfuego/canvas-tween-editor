@@ -1,11 +1,26 @@
 $(document).ready(function() {
 
-	var alphabet = [
-	'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'
-	]
-
-	$('.fakelink').click(function(event) {
-		$('.counter').text(alphabet[7]);
+	
+	$('.left-right-counter').each(function(index, el) {
+		var alphabet = [
+			'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'
+		];
+		var leftArrow = $('<i class="fa fa-chevron-circle-left fakelink left-arrow"></i>');
+		var rightArrow = $('<i class="fa fa-chevron-circle-right fakelink right-arrow"></i>');
+		var input = $('<input class="left-right-counter-value" size="1" type="text">').val(alphabet[0]);
+		$(this).append(leftArrow).append(input).append(rightArrow);
+		rightArrow.click(function(event) {
+			var index = alphabet.indexOf(input.val());
+			if (index != -1 && index < alphabet.length - 1) {
+				input.val(alphabet[++index]);				
+			}
+		});
+		leftArrow.click(function(event) {
+			var index = alphabet.indexOf(input.val());
+			if (index != -1 && index > 0) {
+				input.val(alphabet[--index]);				
+			}
+		});
 	});
 
 	var window_height = $(window).height();
