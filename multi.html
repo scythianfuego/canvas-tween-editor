@@ -1,10 +1,11 @@
 <html>
 	<head>
-		<script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script>
+		<script type="text/javascript" src="jquery.min.js"></script>
+		<script type="text/javascript" src="storage.js"></script>
 		<script type="text/javascript" src="editor.js"></script>
 		<script type="text/javascript" src="multi.js"></script>
 		<link href='http://fonts.googleapis.com/css?family=Open+Sans:400,300' rel='stylesheet' type='text/css'>
-		<link rel="stylesheet" type="text/css" href="http://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.0.3/css/font-awesome.min.css">
+		<link rel="stylesheet" type="text/css" href="./css/font-awesome.min.css">
 		<link rel="stylesheet" type="text/css" href="styles.css">
 	</head>
 	<body>
@@ -13,7 +14,7 @@
 			<div class="left-panel">
 				<div>
 					<span class="track-title">On/off</span>
-					<span class="left-right-counter"></span>
+					<span class="left-right-counter" data-track="onoff"></span>
 				</div>
 
 				<label for="onf_spd">Speed</label><input id="onf_spd" type="text" value="1"> 
@@ -26,7 +27,7 @@
 			<div class="left-panel">
 				<div>
 					<span class="track-title">Frequency</span>
-					<span class="left-right-counter"></span>
+					<span class="left-right-counter" data-track="freq"></span>
 				</div>
 				
 				<label for="frq_chg">Change</label><input id="frq_chg" type="text" value="1"><br>
@@ -39,7 +40,7 @@
 			<div class="left-panel">
 				<div>
 					<span class="track-title">Amplitude</span>
-					<span class="left-right-counter"></span>
+					<span class="left-right-counter" data-track="amp"></span>
 				</div>
 				
 				<label for="amp_chg">Change</label><input id="amp_chg" type="text" value="1"><br>
@@ -53,7 +54,7 @@
 			<div class="left-panel">
 				<div>
 					<span class="track-title">Impulse Width</span>
-					<span class="left-right-counter"></span>
+					<span class="left-right-counter" data-track="iw"></span>
 				</div>
 				
 				<label for="iw_chg">Change</label><input id="iw_chg" type="text" value="1"><br>
@@ -65,7 +66,13 @@
 
 			</div>
 		</div><div class="tools-panel">
-			<button title="Save"><i class="fa fa-save"></i></button>
+			<button title="Undo" id="undo"><i class="fa fa-undo"></i></button>
+			<button title="Save" id="save"><i class="fa fa-save"></i></button>
+			<button title="Export" id="export"><i class="fa fa-cogs"></i></button>
+			<br>
+			<button title="Apply tags" id="apply_tags"><i class="fa fa-tag"></i></button>
+			<button title="Cleanup unused tags" id="clean_tags"><i class="fa fa-trash-o"></i></button>
+			
 
 			<br>
 			<label class="cb">
@@ -87,7 +94,7 @@
 
 		<div class="full">
 			<div id="comment">&nbsp;</div>
-			<div id="gr9" class="tween"></div>
+			<div id="adjust" class="tween"></div>
 		</div>
 	</body>
 </html>

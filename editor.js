@@ -40,16 +40,24 @@ Polyline.prototype.Draw = function(ctx) {
             ctx.fillStyle = 'red';
 
         this.e.DrawAnchoredLine(ctx, sx, sy, ex, ey);
+
+        if (this.points[i].tag && this.points[i].tag.length) {
+            this.e.DrawTag(ctx, ex, ey, this.points[i].tag);
+        }
         ctx.fillStyle = '#000';
     };
 
     if (this.highlighted.indexOf(0) != -1)  //first point
         ctx.fillStyle = 'red';
 
-    this.e.DrawAnchor(ctx,
-        this.e.timestampToX(this.points[0].x), 
-        this.e.valueToY(this.points[0].y)
-    );
+    var zeroX = this.e.timestampToX(this.points[0].x);
+    var zeroY = this.e.valueToY(this.points[0].y)
+    this.e.DrawAnchor(ctx, zeroX, zeroY);
+
+    if (this.points[0].tag && this.points[0].tag.length) {
+        this.e.DrawTag(ctx, zeroX, zeroY, this.points[0].tag);
+    }
+    ctx.fillStyle = '#000';
 } 
 
 Polyline.prototype.push = function(point) {
@@ -141,6 +149,28 @@ Polyline.prototype.highlightPoint = function(i) {
     }
 }
 
+Polyline.prototype.setTag = function(tag) {
+    for (j in this.highlighted) {   //point index
+        var k = this.highlighted[j];
+        this.points[k].tag = tag;
+    }
+    //this.cleanTags('AAAA');
+}
+
+Polyline.prototype.cleanTags = function(firstTag) {
+
+    if (!this.points[0].tag)
+        this.points[0].tag  = firstTag;
+
+    for (var i = 1; i < this.points.length; i++) {
+        if (this.points[i].tag && this.points[i].tag != firstTag) {
+            firstTag = this.points[i].tag;
+        } else {
+            delete this.points[i].tag;
+        }
+    }
+}
+
 Polyline.prototype.highlightRange = function(x1, x2) {
     if (x1 > x2)
         x1 = [x2, x2 = x1][0];  //swap
@@ -222,7 +252,16 @@ var LineEditor = function(element, options) {
     this.mouse = new Mouse(element);
     this.line = new Polyline(this);
 
+    this.siblings = [];
+
     this.line.push({x: 0, y : 32767});
+
+    //speed test
+    /*
+    for (var i = 0; i < 100; i++) {
+        this.line.push({x: i*2000, y : (i % 2)*32768});
+    };*/
+    
 
     this.options.gridHeight = this.height - this.options.marginTop - this.options.marginBottom;
     this.options.gridWidth = this.width - this.options.marginLeft - this.options.marginRight;
@@ -246,6 +285,60 @@ var LineEditor = function(element, options) {
     this.animForceUpdate = 0;
     this.frameRequest = requestAnimFrame(this.updateAnimationFunc(this));
     this.Draw();
+}
+
+
+LineEditor.link = function(siblings) {
+    for (var i = siblings.length - 1; i >= 0; i--) {
+        siblings[i].listenToEvent('subscribe', siblings);
+    };
+}
+
+
+LineEditor.prototype.emitEvent = function(eventName, event) {
+    for (var i = this.siblings.length - 1; i >= 0; i--) {
+        this.siblings[i].listenToEvent(eventName, event);
+    };
+}
+
+LineEditor.prototype.listenToEvent = function(eventName, event) {
+    switch(eventName) {
+        case 'subscribe':
+            var me = event.indexOf(this);
+            if (me != -1) {
+                this.siblings = event.slice(0);    //clone
+                this.siblings.splice(me, 1);    //remove self
+            }
+            break;
+
+        case 'mouse':
+            this.mouse.set(event);
+            this.animForceUpdate = 1;
+            break;
+
+        case 'time':
+            this.startTime  = event.startTime;
+            this.endTime = event.endTime;           
+            this.animForceUpdate = 1;
+            break;
+            
+    }
+}
+
+LineEditor.prototype.getPoints = function() {
+    return this.line.points;
+}
+
+LineEditor.prototype.setPoints = function(points) {
+
+    if(points && points.length > 0) {
+        this.line.points = points;
+    } else {
+        this.line.points = [];
+        this.line.push({x: 0, y : 32767});
+    } 
+
+    this.animForceUpdate = 1;
 }
 
 LineEditor.prototype.destroy = function() {
@@ -325,7 +418,9 @@ LineEditor.prototype.onmousemove = function() {
             + self.formatTs(self.startTime) + '&emsp;' 
             + self.formatTs(self.endTime) + '&emsp;' 
         );
-        self.mouse.set({ x : x, y : y});
+        var mouse = { x : x, y : y};
+        self.mouse.set(mouse);
+        self.emitEvent('mouse', mouse);
 
         var foundPoint = self.line.findPointAt(x, y);
         if (!self.mouse.pressed) {
@@ -375,14 +470,19 @@ LineEditor.prototype.onmousemove = function() {
             var delta = self.mouse.time - t;
             self.startTime =  self.mouse.startTime + delta;
             self.endTime = self.mouse.endTime + delta;
-            self.mouse.set({ 
+            var mouse = { 
                 startTime : self.startTime,
                 endTime : self.endTime,
                 cursor : 'move',
                 drag : true
-            });
+            }
+            self.mouse.set(mouse);
+            self.emitEvent('time', { startTime : self.startTime, endTime : self.endTime });
         }
+
     }
+
+
     return handler;
 }
 
@@ -408,7 +508,7 @@ LineEditor.prototype.onmousedown = function() {
         if (foundPoint != -1 && self.line.highlighted.indexOf(foundPoint) == -1)
             self.line.clearHighlight();     //clear previous selection
 
-        self.mouse.set({ 
+        var mouse = { 
             pressed : true,
             time : t,
             originalX : x,
@@ -416,8 +516,8 @@ LineEditor.prototype.onmousedown = function() {
             startTime : self.startTime,
             endTime : self.endTime,
             button : event.which
-        });
-
+        }
+        self.mouse.set(mouse);
     }
 
     return handler;
@@ -569,7 +669,7 @@ LineEditor.prototype.valueToY = function(value) {
 
 
 
-LineEditor.prototype.Zoom = function(event) {
+LineEditor.prototype.Zoom = function(event, external) {
     var self = this;
 
     var x = event.offsetX ? event.offsetX : event.layerX;
@@ -585,6 +685,8 @@ LineEditor.prototype.Zoom = function(event) {
     self.startTime -= zoomfactor * proportion_y;
     
     self.animForceUpdate = 1; 
+
+    self.emitEvent('time', { startTime : self.startTime, endTime : self.endTime });
 }    
 
 LineEditor.prototype.GetContextFromCache = function(name) {
@@ -656,8 +758,6 @@ LineEditor.prototype.samplesToTick = function(samples) {
 }
 
 LineEditor.prototype.DrawGrid = function() {
-
-
 
     var ctx = this.GetContextFromCache('grid');
     ctx.strokeStyle = "#ccc";
@@ -778,12 +878,54 @@ LineEditor.prototype.DrawTickers = function() {
 
 }
 
-
-
 LineEditor.prototype.Draw = function() {
     this.ctx.clearRect(0, 0, this.width, this.height);
     this.DrawGrid();
     this.DrawData();
     this.DrawTickers();
-
 }
+
+/* http://stackoverflow.com/questions/1255512/how-to-draw-a-rounded-rectangle-on-html-canvas */
+LineEditor.prototype.RoundRect = function(ctx, x, y, width, height, radius) {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+    ctx.fill();      
+}
+
+LineEditor.prototype.DrawTag = function(ctx, x, y, text) {
+    var textW = ctx.measureText(text).width;
+    var textH = ctx.measureText('M').width;
+    var boxW = textW + textH;
+    var boxH = textH * 1.5;
+    var boxX = x - boxW/2;
+    var boxY = y - boxH - boxH/2;
+    if (boxY < 10)
+        boxY = y + boxH + textH/2;
+
+    var textX = boxX + boxW/2 - textW/2;
+    var textY = boxY + boxH/2 + textH/2;
+    ctx.fillStyle = '#FFB356';
+    this.RoundRect(ctx,boxX, boxY, boxW, boxH, 2);
+    ctx.fillStyle = '#000';
+    this.Echo(ctx, text, textX, textY);
+}
+
+LineEditor.prototype.setTag = function(tag) {
+    this.animForceUpdate = 1;
+    return this.line.setTag(tag);
+}
+
+LineEditor.prototype.cleanTags = function(firstTag) {
+    this.animForceUpdate = 1;
+    return this.line.cleanTags(firstTag);
+}
+
