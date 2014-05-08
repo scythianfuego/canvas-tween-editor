@@ -252,6 +252,8 @@ var LineEditor = function(element, options) {
     this.mouse = new Mouse(element);
     this.line = new Polyline(this);
 
+    this.onPointSelection = this.options.onPointSelection;
+
     this.siblings = [];
 
     this.line.push({x: 0, y : 32767});
@@ -269,9 +271,12 @@ var LineEditor = function(element, options) {
     this.startTime = this.options.startTime;
     this.endTime = this.options.endTime;
 
-    element.onmousemove = this.onmousemove();
-    element.onmousedown = this.onmousedown();
-    element.onmouseup = this.onmouseup();
+    document.body.addEventListener('mousemove', this.onmousemove());
+    document.body.addEventListener('mousedown', this.onmousedown());
+    document.body.addEventListener('mouseup', this.onmouseup());
+    //element.onmousemove = this.onmousemove();
+    //element.onmousedown = this.onmousedown();
+    //element.onmouseup = this.onmouseup();
     element.oncontextmenu = this.oncontextmenu();
     this.dblclick = this.ondblclick();
 
@@ -409,6 +414,10 @@ LineEditor.prototype.onmousewheel = function() {
 LineEditor.prototype.onmousemove = function() {
     var self = this;
     var handler = function(event) {
+
+        if (event.target != self.element.getElementsByTagName('canvas')[0])
+            return;
+
         self.animForceUpdate = 1;
         self.calcOffsets(event);
         var x = event.offsetX;
@@ -454,6 +463,11 @@ LineEditor.prototype.onmousemove = function() {
                 var px = self.xToTimestamp(x);
                 var py = self.yToValue(y);
                 self.line.movePoints(self.mouse.pointDragAnchor, px, py);
+
+                if (self.line.highlighted.length == 1 && self.onPointSelection) {
+                    self.onPointSelection(self.line.points[self.line.highlighted], self.line.highlighted);
+                }
+
                 return;
             }
 
@@ -462,6 +476,10 @@ LineEditor.prototype.onmousemove = function() {
             var x2 = ts;
             self.line.clearHighlight();
             self.line.highlightRange(x1, x2);
+
+            if (self.onPointSelection) {
+                self.onPointSelection(null, -1);
+            }
         }
 
         if (self.mouse.button == 3 && self.mouse.pressed) {     //right
@@ -489,6 +507,10 @@ LineEditor.prototype.onmousemove = function() {
 LineEditor.prototype.onmousedown = function() {
     var self = this;
     var handler = function(event) {
+        
+        if (event.target != self.element.getElementsByTagName('canvas')[0])
+            return;
+
         self.animForceUpdate = 1;
         event.preventDefault();
         self.calcOffsets(event);
@@ -526,6 +548,10 @@ LineEditor.prototype.onmousedown = function() {
 LineEditor.prototype.onmouseup = function() {
     var self = this;
     var handler = function(event) {
+
+        //if (event.target != self.element.getElementsByTagName('canvas')[0])
+        //    return;
+
         self.calcOffsets(event);
         var x = event.offsetX;
         var y = event.offsetY;
@@ -563,6 +589,12 @@ LineEditor.prototype.onleftclick = function(event) {
 
     //find point at xy
     var point = self.line.findPointAt(x, y);
+    if (self.onPointSelection) {
+        point == -1
+            ? self.onPointSelection(null, point)
+            : self.onPointSelection(self.line.points[point], point);
+    }
+
     if (point != -1) {  //select point
         self.line.clearHighlight();
         self.line.highlightPoint(point);
@@ -619,6 +651,7 @@ LineEditor.prototype.ondblclick = function() {
             }
             self.startTime = 0;
             self.animForceUpdate = 1; 
+            self.emitEvent('time', { startTime : self.startTime, endTime : self.endTime });
         } else {
             clicked = true;
             timeout = setTimeout( function() {
@@ -705,7 +738,7 @@ LineEditor.prototype.calcCellSize = function() {
 
     var self = this;
     var vStepCount = this.options.gridVSubdiv;
-    var minCellSizePx = 2 * this.options.gridHeight / vStepCount;     //square cell w=h
+    var minCellSizePx = 3 * this.options.gridHeight / vStepCount;     //square cell w=h
     var hStepCount = Math.floor(this.options.gridWidth / minCellSizePx);
     var cellSizeSamples = (this.endTime - this.startTime) / hStepCount; 
 
@@ -741,6 +774,8 @@ LineEditor.prototype.calcCellSize = function() {
 LineEditor.prototype.samplesToTick = function(samples) {
     if (samples < 0)
         return "";
+
+    samples = Math.floor(samples);
     var seconds = Math.floor(samples / 48000);
     var minutes = Math.floor(seconds / 60);
     var samples = samples % 48000;
