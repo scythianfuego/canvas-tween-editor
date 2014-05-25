@@ -31,7 +31,7 @@ $(document).ready(function() {
 	});
 
 
-
+$(window).load(function() {
 
 	var window_height = $(window).height();
 	var top_height = 2 * window_height / 3;
@@ -41,38 +41,14 @@ $(document).ready(function() {
 
 	var height = 100;
 	var width = $('#onoff').width();
-	var gridVSubdiv = 8;
-	var options = { 
-		height : big_height, 
-		width : width,
-		gridVSubdiv : gridVSubdiv, 
-	};
-	var onoffOptions = JSON.parse(JSON.stringify(options));
-	onoffOptions.height = small_height;
-	onoffOptions.gridVSubdiv = 2;
-	var adjustOptions = { 
-		height : bottom_height, 
-		width : $('#adjust').width(),
-		gridVSubdiv : 8
-	}
+	var adjust_width = $('#adjust').width();
 
-	var pointSelectedFromEditor = null;
-	var pointSelectedIndex = -1;
-	options.onPointSelection = function(point, pointIndex) {
-		pointSelectedFromEditor = this;
-		pointSelectedIndex = pointIndex;
+	var pointSelected = null;
+	var onPointSelection = function(point) {
 		if (point) {
-			var minutes = Math.floor(point.x / (48000 * 60)) 
-			var seconds = Math.floor((point.x / 48000) % 60) 
-			var samples = (point.x % 48000);
-			
-			var x = seconds + '.' + ("00000" + samples).slice(-5);
-			if (minutes)
-				x = minutes + ':' + ("00" + seconds).slice(-2) + '.' + ("00000" + samples).slice(-5);
-
-			var y = Math.round(point.y);
-			$('#point_time').val(x);
-			$('#point_value').val(y);
+			pointSelected = point;
+			$('#point_time').val(point.formatX());
+			$('#point_value').val(point.formatY());
 		} else {
 			$('#point_time').val('');
 			$('#point_value').val('');
@@ -80,33 +56,12 @@ $(document).ready(function() {
 	}
 
 	var setPoint = function(event) {
-		if (!pointSelectedFromEditor || pointSelectedIndex == -1)
+		if (!pointSelected)
 			return;
 
 		var time = $('#point_time').val();
-		time = time.split('.');
-		var samples = 0;
-		var seconds = 0;
-		var minutes = 0;
-		if (time.length > 1) {
-			samples = Number(time[1]);
-			seconds = time[0].split(':');
-			if (seconds.length > 1) {
-				minutes = Number(seconds[0]);
-				seconds = Number(seconds[1]);
-			} else {
-				seconds = Number(seconds[0]);
-			}
-		} else {
-			samples = Number(time[0]);
-		}
-		time = samples + seconds * 48000 + minutes * 60 * 48000;
-
 		var value = $('#point_value').val();
-		var points = pointSelectedFromEditor.getPoints();
-		points[pointSelectedIndex].x = time;
-		points[pointSelectedIndex].y = value;
-		pointSelectedFromEditor.setPoints(points);
+		pointSelected.formatX(time).formatY(value);
 	};
 
 	$('#set').click(setPoint);
@@ -114,14 +69,20 @@ $(document).ready(function() {
 	$('#point_value').keyup(function(event) { if (event.keyCode == 13) setPoint(); });
 
 
+
 	var editors = {
-		onoff : new LineEditor($('#onoff').get(0), onoffOptions),
-		freq : new LineEditor($('#frequency').get(0), options),
-		amp : new LineEditor($('#amplitude').get(0), options),
-		iw : new LineEditor($('#iw').get(0), options),
-		adjust : new LineEditor($('#adjust').get(0), adjustOptions)
+		onoff : new TweenEditor($('#onoff').get(0), 
+			{ onPointSelection : onPointSelection, height : small_height, width : width, gridVSubdiv : 2, min : 0, max : 1, units : '' }),
+		freq : new TweenEditor($('#frequency').get(0), 
+			{ onPointSelection : onPointSelection, height : big_height, width : width, gridVSubdiv : 8, min : 1, max : 500, units : 'Hz' }),
+		amp : new TweenEditor($('#amplitude').get(0), 
+			{ onPointSelection : onPointSelection, height : big_height, width : width, gridVSubdiv : 8, min : 0, max : 100 }),
+		iw : new TweenEditor($('#iw').get(0), 
+			{ onPointSelection : onPointSelection, height : big_height, width : width, gridVSubdiv : 8, min : 1, max : 80, units : '' }),
+		adjust : new TweenEditor($('#adjust').get(0), 
+			{ onPointSelection : onPointSelection, height : bottom_height, width : adjust_width, gridVSubdiv : 8 })
 	}
-	LineEditor.link([editors.onoff, editors.freq, editors.amp, editors.iw]);
+	TweenEditor.link([editors.onoff, editors.freq, editors.amp, editors.iw]);
 	editors.adjust.cleanTags('AAAA');
 
 	var currentTag = function() {
@@ -166,6 +127,6 @@ $(document).ready(function() {
 		storage.setData('adjust', 'A', editors['adjust'].getPoints());	
 		var text = storage.export();
 	});
-
+});
 
 });

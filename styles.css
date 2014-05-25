@@ -44,7 +44,7 @@ input[type=checkbox] {
 	display: inline-block;
 }
 .tools-panel {
-	width: 15%; 
+	width: 180px; 
 	box-sizing: border-box;
 	display: inline-block; 
 	vertical-align: top; 

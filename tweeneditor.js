@@ -1,227 +1,4 @@
-
-//render
-window.requestAnimFrame = (function(){
-  return  window.requestAnimationFrame       || 
-          window.webkitRequestAnimationFrame || 
-          window.mozRequestAnimationFrame    || 
-          window.oRequestAnimationFrame      || 
-          window.msRequestAnimationFrame     || 
-          function( callback ){
-            window.setTimeout(callback, 1000 / 60);
-          };
-})();
-
-window.cancelRequestAnimFrame = ( function() {
-    return window.cancelAnimationFrame          ||
-        window.webkitCancelRequestAnimationFrame    ||
-        window.mozCancelRequestAnimationFrame       ||
-        window.oCancelRequestAnimationFrame     ||
-        window.msCancelRequestAnimationFrame        ||
-        clearTimeout
-})();
-
-//line 
-
-var Polyline = function(editor) {
-    this.e = editor;
-    this.points = [];
-    this.highlighted = [];
-}
-
-Polyline.prototype.Draw = function(ctx) {
-
-    for (var i = this.points.length - 1; i > 0; i--) {
-        var sx = this.e.timestampToX(this.points[i-1].x);
-        var sy = this.e.valueToY(this.points[i-1].y);
-        var ex = this.e.timestampToX(this.points[i].x);
-        var ey = this.e.valueToY(this.points[i].y);
-
-        if (this.highlighted.indexOf(i) != -1)
-            ctx.fillStyle = 'red';
-
-        this.e.DrawAnchoredLine(ctx, sx, sy, ex, ey);
-
-        if (this.points[i].tag && this.points[i].tag.length) {
-            this.e.DrawTag(ctx, ex, ey, this.points[i].tag);
-        }
-        ctx.fillStyle = '#000';
-    };
-
-    if (this.highlighted.indexOf(0) != -1)  //first point
-        ctx.fillStyle = 'red';
-
-    var zeroX = this.e.timestampToX(this.points[0].x);
-    var zeroY = this.e.valueToY(this.points[0].y)
-    this.e.DrawAnchor(ctx, zeroX, zeroY);
-
-    if (this.points[0].tag && this.points[0].tag.length) {
-        this.e.DrawTag(ctx, zeroX, zeroY, this.points[0].tag);
-    }
-    ctx.fillStyle = '#000';
-} 
-
-Polyline.prototype.push = function(point) {
-    this.points.push(point);
-} 
-
-Polyline.prototype.findPointAt = function(x, y) {
-    for (var i = this.points.length - 1; i >= 0; i--) {
-        var px = this.e.timestampToX(this.points[i].x);
-        var py = this.e.valueToY(this.points[i].y);
-        var delta = 10;
-        if (Math.abs(px - x) < delta && Math.abs(py - y) < delta)
-            return i;
-    }
-    return -1;
-}
-
-Polyline.prototype.beforeMove = function(i) {
-    var selectionOffsets = [];
-    var dy_arr = [];
-    this.highlighted.sort(function(a,b) { return a - b; });
-    for (j in this.highlighted) {   //point index
-        var k = this.highlighted[j];
-        var n = this.highlighted[0];
-        var dx = this.points[k].x - this.points[n].x;
-        var dy = this.points[k].y - this.points[n].y;
-        selectionOffsets[j] =  { dx : dx, dy : dy }
-        dy_arr.push(dy);
-    }
-    this.selectionOffsets = selectionOffsets;
-    var maxOffsetY = Math.max.apply( Math, dy_arr );
-    var minOffsetY = Math.min.apply( Math, dy_arr );
-    this.maxY = 0xffff-maxOffsetY;
-    this.minY = -minOffsetY;
-    this.maxOffset = selectionOffsets[selectionOffsets.length-1].dx;
-}
-
-
-Polyline.prototype.movePoints = function(i, x, y) {
-
-    var index = this.highlighted.indexOf(i);
-    x -= this.selectionOffsets[index].dx;
-    y -= this.selectionOffsets[index].dy;
- 
-
-    //bounding box
-    var first = this.highlighted[0];
-    if (first != 0)
-        if (x < this.points[first-1].x)
-            x = this.points[first-1].x;
-
-    var last = this.highlighted[this.highlighted.length-1];
-    if (this.points.length-1 > last)
-        if (x + this.maxOffset > this.points[last+1].x)
-            x = this.points[last+1].x - this.maxOffset;
-
-    if (y > this.maxY)
-        y = this.maxY;
-
-    if (y < this.minY)
-        y = this.minY;
-
-    //move
-    for (j in this.highlighted) {
-        var k = this.highlighted[j];    //point index
-        if (first == k) {
-            this.points[k].y = y;
-            if (k != 0)
-                this.points[k].x = x;
-        } else {
-            this.points[k].y = this.points[first].y + this.selectionOffsets[j].dy;
-            if (k != 0)
-                this.points[k].x = this.points[first].x + this.selectionOffsets[j].dx;
-        }
-    }
-
-
-}
-
-Polyline.prototype.deletePoint = function(i) {
-    if (i > 0)
-        this.points.splice(i, 1);
-}
-
-Polyline.prototype.highlightPoint = function(i) {
-    if (i >= 0) {
-        if (this.highlighted.indexOf(i) == -1)
-            this.highlighted.push(i);
-    }
-}
-
-Polyline.prototype.setTag = function(tag) {
-    for (j in this.highlighted) {   //point index
-        var k = this.highlighted[j];
-        this.points[k].tag = tag;
-    }
-    //this.cleanTags('AAAA');
-}
-
-Polyline.prototype.cleanTags = function(firstTag) {
-
-    if (!this.points[0].tag)
-        this.points[0].tag  = firstTag;
-
-    for (var i = 1; i < this.points.length; i++) {
-        if (this.points[i].tag && this.points[i].tag != firstTag) {
-            firstTag = this.points[i].tag;
-        } else {
-            delete this.points[i].tag;
-        }
-    }
-}
-
-Polyline.prototype.highlightRange = function(x1, x2) {
-    if (x1 > x2)
-        x1 = [x2, x2 = x1][0];  //swap
-
-    for (var i = 0; i < this.points.length ; i++)
-        if (this.points[i].x < x2 && this.points[i].x > x1)
-            this.highlighted.push(i);
-}
-
-Polyline.prototype.clearHighlight = function(i) {
-    this.highlighted = [];
-}
-
-Polyline.prototype.addPoint = function(x, y) {
-    var l = this.points.length - 1;
-    if (x > this.points[l].x) {
-        this.points.push({x : x, y : y});
-    } else {
-        for (var i = this.points.length - 1; i > 0; i--)
-            if (this.points[i-1].x < x && this.points[i].x > x) {
-                this.points.splice(i, 0, {x : x, y : y});
-                return;
-            }
-    }
-}
-
-
-
-//mouse tools
-var Mouse = function(element) {
-    this.pressed = false;
-    this.startTime = null;
-    this.endTime = null;
-    this.drag = false;
-    this.pointDrag = false;
-    this.time = null;
-    this.element = element;
-    this.cursor = 'auto';
-    this.foundPoint = -1;
-}
-
-Mouse.prototype.set = function(obj2) {
-    for (var attrname in obj2) { this[attrname] = obj2[attrname]; }
-    if (obj2.cursor) {
-        this.element.style.cursor = obj2.cursor;
-    }
-}
-
-
-//editor
-var LineEditor = function(element, options) {
+var TweenEditor = function(element, options) {
 
     var defaults = {
         width : 800,
@@ -234,12 +11,59 @@ var LineEditor = function(element, options) {
         marginRight : 10,
         fontSize : 12,
         gridVSubdiv : 8,
-        font: "11px Arial"
+        font: "11px Arial",
+        maxUnmapped : 4096,
+        max : 100,
+        min : 1,
+        units : "%"
     }
+
+
 
     //overwrite options
     this.options = defaults;
     for (var attrname in options) {  this.options[attrname] = options[attrname]; }
+
+    var MouseInfo = function(element) { //mouse tools
+        this.pressed = false;   
+        this.startTime = null;
+        this.endTime = null;
+        this.drag = false;
+        this.pointDrag = false;
+        this.time = null;
+        this.element = element;
+        this.cursor = 'auto';
+        this.foundPoint = -1;
+
+        this.set = function(obj2) {
+            for (var attrname in obj2) { this[attrname] = obj2[attrname]; }
+            if (obj2.cursor) {
+                this.element.style.cursor = obj2.cursor;
+            }
+        }
+    }
+
+    this.requestAnimFrame = (function(){
+      return  window.requestAnimationFrame       || 
+              window.webkitRequestAnimationFrame || 
+              window.mozRequestAnimationFrame    || 
+              window.oRequestAnimationFrame      || 
+              window.msRequestAnimationFrame     || 
+              function( callback ){
+                window.setTimeout(callback, 1000 / 60);
+              };
+    })();
+
+    this.cancelRequestAnimFrame = ( function() {
+        return window.cancelAnimationFrame          ||
+            window.webkitCancelRequestAnimationFrame    ||
+            window.mozCancelRequestAnimationFrame       ||
+            window.oCancelRequestAnimationFrame     ||
+            window.msCancelRequestAnimationFrame        ||
+            clearTimeout
+    })();
+
+
 
     var canvas = document.createElement("canvas");
     canvas.width = this.options.width;
@@ -249,14 +73,14 @@ var LineEditor = function(element, options) {
     this.ctx = canvas.getContext("2d");
     this.width = canvas.width;
     this.height = canvas.height;
-    this.mouse = new Mouse(element);
-    this.line = new Polyline(this);
+    this.mouse = new MouseInfo(element);
+    this.line = new TweenPolyline(this);
 
     this.onPointSelection = this.options.onPointSelection;
 
     this.siblings = [];
 
-    this.line.push({x: 0, y : 32767});
+    this.line.push({x: 0, y : this.options.maxUnmapped / 2});
 
     //speed test
     /*
@@ -288,25 +112,25 @@ var LineEditor = function(element, options) {
 
     this.animLastFrameTimestamp = 0;
     this.animForceUpdate = 0;
-    this.frameRequest = requestAnimFrame(this.updateAnimationFunc(this));
+    this.frameRequest = this.requestAnimFrame.call(window, this.updateAnimationFunc(this));
     this.Draw();
 }
 
 
-LineEditor.link = function(siblings) {
+TweenEditor.link = function(siblings) {
     for (var i = siblings.length - 1; i >= 0; i--) {
         siblings[i].listenToEvent('subscribe', siblings);
     };
 }
 
 
-LineEditor.prototype.emitEvent = function(eventName, event) {
+TweenEditor.prototype.emitEvent = function(eventName, event) {
     for (var i = this.siblings.length - 1; i >= 0; i--) {
         this.siblings[i].listenToEvent(eventName, event);
     };
 }
 
-LineEditor.prototype.listenToEvent = function(eventName, event) {
+TweenEditor.prototype.listenToEvent = function(eventName, event) {
     switch(eventName) {
         case 'subscribe':
             var me = event.indexOf(this);
@@ -330,11 +154,11 @@ LineEditor.prototype.listenToEvent = function(eventName, event) {
     }
 }
 
-LineEditor.prototype.getPoints = function() {
+TweenEditor.prototype.getPoints = function() {
     return this.line.points;
 }
 
-LineEditor.prototype.setPoints = function(points) {
+TweenEditor.prototype.setPoints = function(points) {
 
     if(points && points.length > 0) {
         this.line.points = points;
@@ -346,11 +170,11 @@ LineEditor.prototype.setPoints = function(points) {
     this.animForceUpdate = 1;
 }
 
-LineEditor.prototype.destroy = function() {
-    cancelRequestAnimFrame(this.frameRequest);
+TweenEditor.prototype.destroy = function() {
+    this.cancelRequestAnimFrame(this.frameRequest);
 }
 
-LineEditor.prototype.updateAnimationFunc = function(self) {
+TweenEditor.prototype.updateAnimationFunc = function(self) {
     var result = function(timestamp) {
         //var delta = timestamp - self.animLastFrameTimestamp;
         if (self.animForceUpdate) {
@@ -358,21 +182,21 @@ LineEditor.prototype.updateAnimationFunc = function(self) {
             self.animForceUpdate = 0;
             self.Draw();
         }
-        self.frameRequest = requestAnimFrame(self.updateAnimationFunc(self));
+        self.frameRequest = self.requestAnimFrame.call(window, self.updateAnimationFunc(self));
     }
     return result;
 }
 
 //tools
 
-LineEditor.prototype.formatTs = function(ts) {
+TweenEditor.prototype.formatTs = function(ts) {
     var pad = "00000";
     var str = Math.floor(ts%48000)+"";
     var samples = pad.substring(0, pad.length - str.length) + str;
     return Math.floor(ts/48000) + '.'+ samples + 's';
 }
 
-LineEditor.prototype.comment = function(str) {
+TweenEditor.prototype.comment = function(str) {
     var el = document.getElementById('comment');
     el.innerHTML = str;
 }
@@ -396,14 +220,14 @@ check if drag
 check if point is under and points selected
 */
 
-LineEditor.prototype.calcOffsets = function(event) {
+TweenEditor.prototype.calcOffsets = function(event) {
     if(!event.hasOwnProperty('offsetX')) {
-        event.offsetX = event.layerX - event.currentTarget.offsetLeft;
-        event.offsetY = event.layerY - event.currentTarget.offsetTop;
+        event.offsetX = event.layerX - event.target.offsetLeft;
+        event.offsetY = event.layerY - event.target.offsetTop;
     }
 }
 
-LineEditor.prototype.onmousewheel = function() {
+TweenEditor.prototype.onmousewheel = function() {
     var self = this;
     return function(event) {
         event.preventDefault();
@@ -411,7 +235,7 @@ LineEditor.prototype.onmousewheel = function() {
     }
 }
 
-LineEditor.prototype.onmousemove = function() {
+TweenEditor.prototype.onmousemove = function() {
     var self = this;
     var handler = function(event) {
 
@@ -465,7 +289,8 @@ LineEditor.prototype.onmousemove = function() {
                 self.line.movePoints(self.mouse.pointDragAnchor, px, py);
 
                 if (self.line.highlighted.length == 1 && self.onPointSelection) {
-                    self.onPointSelection(self.line.points[self.line.highlighted], self.line.highlighted);
+                    //self.onPointSelection(self.line.points[self.line.highlighted], self.line.highlighted);
+                    self.onPointSelection(self.line.smartPoint(self.line.highlighted));
                 }
 
                 return;
@@ -478,7 +303,7 @@ LineEditor.prototype.onmousemove = function() {
             self.line.highlightRange(x1, x2);
 
             if (self.onPointSelection) {
-                self.onPointSelection(null, -1);
+                self.onPointSelection(null);
             }
         }
 
@@ -504,7 +329,7 @@ LineEditor.prototype.onmousemove = function() {
     return handler;
 }
 
-LineEditor.prototype.onmousedown = function() {
+TweenEditor.prototype.onmousedown = function() {
     var self = this;
     var handler = function(event) {
         
@@ -545,7 +370,7 @@ LineEditor.prototype.onmousedown = function() {
     return handler;
 }
 
-LineEditor.prototype.onmouseup = function() {
+TweenEditor.prototype.onmouseup = function() {
     var self = this;
     var handler = function(event) {
 
@@ -578,7 +403,7 @@ LineEditor.prototype.onmouseup = function() {
     return handler;
 }
 
-LineEditor.prototype.onleftclick = function(event) {
+TweenEditor.prototype.onleftclick = function(event) {
     var self = this;
     self.animForceUpdate = 1;
 
@@ -591,8 +416,8 @@ LineEditor.prototype.onleftclick = function(event) {
     var point = self.line.findPointAt(x, y);
     if (self.onPointSelection) {
         point == -1
-            ? self.onPointSelection(null, point)
-            : self.onPointSelection(self.line.points[point], point);
+            ? self.onPointSelection(null)
+            : self.onPointSelection(self.line.smartPoint(point));
     }
 
     if (point != -1) {  //select point
@@ -613,7 +438,7 @@ LineEditor.prototype.onleftclick = function(event) {
     }
 }
 
-LineEditor.prototype.onrightclick = function(event) {
+TweenEditor.prototype.onrightclick = function(event) {
     var self = this;
     event.preventDefault();
     self.calcOffsets(event);
@@ -628,7 +453,7 @@ LineEditor.prototype.onrightclick = function(event) {
     self.dblclick();
 } 
 
-LineEditor.prototype.oncontextmenu = function(event) {
+TweenEditor.prototype.oncontextmenu = function(event) {
     var self = this;
     var handler = function(event) {
         event.preventDefault();
@@ -636,7 +461,7 @@ LineEditor.prototype.oncontextmenu = function(event) {
     return handler;
 }
 
-LineEditor.prototype.ondblclick = function() {
+TweenEditor.prototype.ondblclick = function() {
 
     var self = this;
     var timeout = 0, clicked = false;
@@ -662,7 +487,7 @@ LineEditor.prototype.ondblclick = function() {
 }
 
 /*
-LineEditor.prototype.ondblclick = function() {
+TweenEditor.prototype.ondblclick = function() {
     var self = this;
     var handler = function(event) {
         self.startTime = 0;
@@ -674,35 +499,45 @@ LineEditor.prototype.ondblclick = function() {
 */
 
 //body
-LineEditor.prototype.xToTimestamp = function(x) {
+TweenEditor.prototype.xToTimestamp = function(x) {
     var proportion = (x - this.options.marginLeft ) / this.options.gridWidth;
     var dt = (this.endTime - this.startTime) * proportion + this.startTime;
     return Math.round(dt);
 }
 
-LineEditor.prototype.timestampToX = function(timestamp) {
+TweenEditor.prototype.timestampToX = function(timestamp) {
     var proportion = (timestamp - this.startTime) / (this.endTime - this.startTime);
     var positionX = this.options.gridWidth * proportion + this.options.marginLeft;
     return Math.round(positionX);
 }
 
-LineEditor.prototype.yToValue = function(y) {
+TweenEditor.prototype.yToValue = function(y) {
     var proportion = (y - this.options.marginTop ) / this.options.gridHeight;
-    var value = 0xffff * (1 - proportion);
-    if (value > 0xffff) value = 0xffff;
+    var value = this.options.maxUnmapped * (1 - proportion);
+    if (value > this.options.maxUnmapped) value = this.options.maxUnmapped;
     if (value < 0) value = 0;
     return value;
 }
 
-LineEditor.prototype.valueToY = function(value) {
-    var proportion = (0xffff - value) / 0xffff;
+TweenEditor.prototype.valueToY = function(value) {
+    var proportion = (this.options.maxUnmapped - value) / this.options.maxUnmapped;
     var y =  this.options.gridHeight * proportion + this.options.marginTop;
     return y;
 }
 
+TweenEditor.prototype.map = function(x, in_min, in_max, out_min, out_max) {  //arduino
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
 
+TweenEditor.prototype.valueToMap = function(value) {
+    return this.map(value, 0, this.options.maxUnmapped, this.options.min, this.options.max);
+}
 
-LineEditor.prototype.Zoom = function(event, external) {
+TweenEditor.prototype.mapToValue = function(map) {
+    return this.map(map, this.options.min, this.options.max, 0, this.options.maxUnmapped);
+}
+
+TweenEditor.prototype.Zoom = function(event, external) {
     var self = this;
 
     var x = event.offsetX ? event.offsetX : event.layerX;
@@ -722,7 +557,7 @@ LineEditor.prototype.Zoom = function(event, external) {
     self.emitEvent('time', { startTime : self.startTime, endTime : self.endTime });
 }    
 
-LineEditor.prototype.GetContextFromCache = function(name) {
+TweenEditor.prototype.GetContextFromCache = function(name) {
     this.canvasCache = {};
     var canvasTemp = document.createElement("canvas");
     canvasTemp.width = this.width;
@@ -734,7 +569,7 @@ LineEditor.prototype.GetContextFromCache = function(name) {
 
 
 
-LineEditor.prototype.calcCellSize = function() {
+TweenEditor.prototype.calcCellSize = function() {
 
     var self = this;
     var vStepCount = this.options.gridVSubdiv;
@@ -771,7 +606,7 @@ LineEditor.prototype.calcCellSize = function() {
 }
 
 
-LineEditor.prototype.samplesToTick = function(samples) {
+TweenEditor.prototype.samplesToTick = function(samples) {
     if (samples < 0)
         return "";
 
@@ -792,7 +627,7 @@ LineEditor.prototype.samplesToTick = function(samples) {
     return seconds + "s"
 }
 
-LineEditor.prototype.DrawGrid = function() {
+TweenEditor.prototype.DrawGrid = function() {
 
     var ctx = this.GetContextFromCache('grid');
     ctx.strokeStyle = "#ccc";
@@ -825,8 +660,9 @@ LineEditor.prototype.DrawGrid = function() {
         if (i == stepCount/2)
             ctx.strokeStyle = "#ccc";
 
+        var stepSize = (this.options.max - this.options.min)/stepCount;
         if (i % 2 == 0)
-            this.Echo(ctx, (100-i*(100/stepCount))+"%", 0, y + 4);
+            this.Echo(ctx, Math.floor(this.options.max-i*stepSize)+this.options.units, 0, y + 4);
 
     };
 
@@ -852,13 +688,13 @@ LineEditor.prototype.DrawGrid = function() {
 
 }
 
-LineEditor.prototype.DrawBox = function (ctx, sx, sy, ex, ey) {
+TweenEditor.prototype.DrawBox = function (ctx, sx, sy, ex, ey) {
     ctx.rect(sx, sy, ex - sx, ey - sy);
     ctx.fill();
 }
 
 
-LineEditor.prototype.DrawLine = function (ctx, sx, sy, ex, ey) {
+TweenEditor.prototype.DrawLine = function (ctx, sx, sy, ex, ey) {
     ctx.beginPath();
     ctx.lineWidth = 1;
     ctx.lineCap = 'round';
@@ -868,33 +704,33 @@ LineEditor.prototype.DrawLine = function (ctx, sx, sy, ex, ey) {
     ctx.stroke();
 }
 
-LineEditor.prototype.DrawAnchoredLine = function(ctx, sx, sy, ex, ey) {
+TweenEditor.prototype.DrawAnchoredLine = function(ctx, sx, sy, ex, ey) {
     this.DrawLine(ctx, sx, sy, ex, ey);
     ctx.beginPath();
     ctx.arc(ex, ey, 3, 0, 2*Math.PI);
     ctx.fill();
 }
 
-LineEditor.prototype.DrawAnchor = function(ctx, x, y) {
+TweenEditor.prototype.DrawAnchor = function(ctx, x, y) {
     ctx.beginPath();
     ctx.arc(x, y, 3, 0, 2*Math.PI); 
     ctx.fill();
 }
 
-LineEditor.prototype.DrawAnchorHighlight = function(ctx, x, y) {
+TweenEditor.prototype.DrawAnchorHighlight = function(ctx, x, y) {
     ctx.fillStyle = "rgba(255, 165, 0, 0.6)";
     ctx.beginPath();
     ctx.arc(x, y, 10, 0, 2*Math.PI);    //x,y,radius,angles
     ctx.fill();
 }
 
-LineEditor.prototype.Echo = function(ctx, text, x, y) {
+TweenEditor.prototype.Echo = function(ctx, text, x, y) {
     ctx.font = this.options.font;
     ctx.fillText(text, x, y);
 }
 
 
-LineEditor.prototype.DrawData = function() {
+TweenEditor.prototype.DrawData = function() {
 
     var ctx = this.GetContextFromCache('lines');
     ctx.strokeStyle = "#000";
@@ -903,7 +739,7 @@ LineEditor.prototype.DrawData = function() {
 
 }
 
-LineEditor.prototype.DrawTickers = function() {
+TweenEditor.prototype.DrawTickers = function() {
 
     var ctx = this.GetContextFromCache('tickers');
     ctx.strokeStyle = "#000";
@@ -913,7 +749,7 @@ LineEditor.prototype.DrawTickers = function() {
 
 }
 
-LineEditor.prototype.Draw = function() {
+TweenEditor.prototype.Draw = function() {
     this.ctx.clearRect(0, 0, this.width, this.height);
     this.DrawGrid();
     this.DrawData();
@@ -921,7 +757,7 @@ LineEditor.prototype.Draw = function() {
 }
 
 /* http://stackoverflow.com/questions/1255512/how-to-draw-a-rounded-rectangle-on-html-canvas */
-LineEditor.prototype.RoundRect = function(ctx, x, y, width, height, radius) {
+TweenEditor.prototype.RoundRect = function(ctx, x, y, width, height, radius) {
     ctx.beginPath();
     ctx.moveTo(x + radius, y);
     ctx.lineTo(x + width - radius, y);
@@ -936,7 +772,7 @@ LineEditor.prototype.RoundRect = function(ctx, x, y, width, height, radius) {
     ctx.fill();      
 }
 
-LineEditor.prototype.DrawTag = function(ctx, x, y, text) {
+TweenEditor.prototype.DrawTag = function(ctx, x, y, text) {
     var textW = ctx.measureText(text).width;
     var textH = ctx.measureText('M').width;
     var boxW = textW + textH;
@@ -954,12 +790,17 @@ LineEditor.prototype.DrawTag = function(ctx, x, y, text) {
     this.Echo(ctx, text, textX, textY);
 }
 
-LineEditor.prototype.setTag = function(tag) {
+
+TweenEditor.prototype.setUpdate = function() {
+    this.animForceUpdate = 1;
+}
+
+TweenEditor.prototype.setTag = function(tag) {
     this.animForceUpdate = 1;
     return this.line.setTag(tag);
 }
 
-LineEditor.prototype.cleanTags = function(firstTag) {
+TweenEditor.prototype.cleanTags = function(firstTag) {
     this.animForceUpdate = 1;
     return this.line.cleanTags(firstTag);
 }
