@@ -548,7 +548,6 @@ TweenEditor.prototype.Zoom = function(event, external) {
     var proportion = Math.abs(self.startTime - self.endTime) * 0.05; // %
     var proportion_y = (t - self.startTime) / Math.abs(self.startTime - self.endTime);
     zoomfactor *= proportion;
-
     self.endTime += zoomfactor * (1 - proportion_y);
     self.startTime -= zoomfactor * proportion_y;
     

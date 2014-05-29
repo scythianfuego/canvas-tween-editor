@@ -126,6 +126,13 @@ $(window).load(function() {
 
 		storage.setData('adjust', 'A', editors['adjust'].getPoints());	
 		var text = storage.export();
+
+		$('#export_data').val(text);
+		$('.modal-lock').show();
+	});
+
+	$('#btn-close').click(function(){
+		$('.modal-lock').hide();
 	});
 });
 

@@ -99,9 +99,33 @@
 			<div id="adjust" class="tween"></div>
 		</div>
 
-		<div id="save">
-			<input type="text" id="save_name">
-			<button class="text-button" id="save">Save</button>
+		<div class="modal-lock">
+		<div class="modal-box">
+		<div class="modal-content">
+			<div id="save">
+				<input type="text" id="save_name">
+				<button class="text-button" id="btn-save"><i class="fa fa-save"></i> Save</button>
+			</div>
+
+			<div id="load">
+				<select name="load_name" size="10" >
+				    <option>text1</option>
+				    <option>text2</option>
+				    <option>text3</option>
+				    <option>text4</option>
+				    <option>text5</option>
+				 </select> 
+				<button class="text-button" id="btn-load"><i class="fa fa-folder-open"></i> Open</button>
+			</div>
+
+			<div id="export">
+				<textarea id="export_data"></textarea>
+				<button class="text-button" id="btn-close">Close</button>
+			</div>
 		</div>
+		</div>
+		</div>
+
+
 	</body>
 </html>

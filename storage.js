@@ -24,9 +24,10 @@ Storage.prototype.getUndoData = function() {
 
 
 /*
-0x01 loop to point index : 0x01 00 0002
-0x02 next segment(s) is ladder, count/steps: 0x02 0001 07
-0x03 controltrack - switch to loopid: 0x04 000001 => 6 bit* 4
+point value = 0xffff -> special
+0x01 loop to point index : 0x81 00 0002
+0x02 next segment(s) is ladder, count/steps: 0x82 0001 07
+0x03 controltrack - switch to loopid: 0x84 000001 => 6 bit* 4
 
 struct trackDataEx {
 	uint16_t segments_count 	//max 65535
