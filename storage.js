@@ -18,6 +18,15 @@ Storage.prototype.getData = function(track, index) {
 	return [];
 }
 
+Storage.prototype.getAll = function() {
+	return this.data;
+}
+
+Storage.prototype.setAll = function(data) {
+	return this.data = data;
+}
+
+
 Storage.prototype.getUndoData = function() {
 
 }

@@ -68,23 +68,20 @@
 
 			</div>
 		</div><div class="tools-panel">
-			<button title="Undo" id="undo"><i class="fa fa-undo"></i></button>
-			<button title="Save" id="save"><i class="fa fa-save"></i></button>
-			<button title="Export" id="export"><i class="fa fa-cogs"></i></button>
-			<br>
-			<button title="Apply tags" id="apply_tags"><i class="fa fa-tag"></i></button>
-			<button title="Cleanup unused tags" id="clean_tags"><i class="fa fa-trash-o"></i></button>
+			<div>
+				<button type="button" title="Undo" id="undo"><i class="fa fa-undo"></i></button><button 
+				type="button" title="Export/save/load" id="export"><i class="fa fa-save"></i></button>				
+			</div>
+			<div>
+				<button type="button" title="Apply tags" id="apply_tags"><i class="fa fa-tag"></i></button><button 
+				type="button" title="Cleanup unused tags" id="clean_tags"><i class="fa fa-trash-o"></i></button>
+			</div>
 			
 
+			<div><i class="fa fa-clock-o"></i> <input type="text" id="point_time" value=""></div>
+			<div><i class="fa fa-pencil-square-o"></i>  <input type="text"  id="point_value" value=""> </div>
 			<br>
-			<label class="cb">
-				<input type="checkbox" value="1"> Snap to grid
-			</label>
-
-			<div>Point time <input type="text" id="point_time" value=""></div>
-			<div>Point value  <input type="text"  id="point_value" value=""> </div>
-
-			<button class="text-button" title="Set point coordinates" id="set">Set</button>
+			<button type="button" class="text-button" title="Set point coordinates" id="set"><i class="fa fa-check"></i></button>
 
 			<select>
 				<option value="0">Adjust</option>
@@ -102,25 +99,31 @@
 		<div class="modal-lock">
 		<div class="modal-box">
 		<div class="modal-content">
-			<div id="save">
-				<input type="text" id="save_name">
-				<button class="text-button" id="btn-save"><i class="fa fa-save"></i> Save</button>
+
+			<div class="slcontainer first">
+				<h3>Tracks</h3>
+				<div id="load">
+					<select id="load_name" name="load_name" size="10" > </select><br>
+					<button type="button" class="text-button" id="btn-load"><i class="fa fa-folder-open"></i> Load</button>
+					<button type="button" class="text-button" id="btn-delete"><i class="fa fa-trash-o"></i> Delete</button>
+				</div>
+			</div>
+			<div class="slcontainer">
+				<h3>Save as</h3>
+				<div id="save">
+					<input type="text" id="save_name">
+					<button type="button" class="text-button" id="btn-save"><i class="fa fa-save"></i> Save </button>
+				</div>
+
+				<h3>Export data</h3>
+				<div id="export">
+					<textarea id="export_data" rows="5" cols="30"></textarea>
+					
+				</div>
 			</div>
 
-			<div id="load">
-				<select name="load_name" size="10" >
-				    <option>text1</option>
-				    <option>text2</option>
-				    <option>text3</option>
-				    <option>text4</option>
-				    <option>text5</option>
-				 </select> 
-				<button class="text-button" id="btn-load"><i class="fa fa-folder-open"></i> Open</button>
-			</div>
-
-			<div id="export">
-				<textarea id="export_data"></textarea>
-				<button class="text-button" id="btn-close">Close</button>
+			<div class="slcontainer" id="btn-close">
+				<i class="fa fa-times-circle"></i>
 			</div>
 		</div>
 		</div>

@@ -164,7 +164,7 @@ TweenEditor.prototype.setPoints = function(points) {
         this.line.points = points;
     } else {
         this.line.points = [];
-        this.line.push({x: 0, y : 32767});
+        this.line.push({x: 0, y : this.options.maxUnmapped / 2});
     } 
 
     this.animForceUpdate = 1;

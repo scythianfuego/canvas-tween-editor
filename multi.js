@@ -34,14 +34,20 @@ $(document).ready(function() {
 $(window).load(function() {
 
 	var window_height = $(window).height();
-	var top_height = 2 * window_height / 3;
-	var bottom_height = window_height / 3;
-	var small_height = top_height / 7;
-	var big_height = 2 * small_height
+	var top_height = Math.floor(2 * window_height / 3);
+	var bottom_height = Math.floor(window_height / 3);
+	var small_height = Math.floor(top_height / 7);
+	var big_height = Math.floor(2 * small_height);
 
 	var height = 100;
 	var width = $('#onoff').width();
 	var adjust_width = $('#adjust').width();
+
+	$('#onoff').height(small_height);
+	$('#frequency').height(big_height);
+	$('#amplitude').height(big_height);
+	$('#iw').height(big_height);
+	$('#adjust').height(bottom_height);
 
 	var pointSelected = null;
 	var onPointSelection = function(point) {
@@ -115,24 +121,81 @@ $(window).load(function() {
 		editors.adjust.cleanTags('AAAA');
 	});
 
-	$('#export').click(function(event) {
+	var trackCount = 0;
+	var updateTrackList = function() {
+		trackCount = 0;
+		$('#load_name').html('');
+		for(var i in localStorage) {		
+			var o = $('<option>').attr('name', i).text(i);
+			$('#load_name').append(o);
+			trackCount++;
+		}
+	}
+	updateTrackList();
 
+	var storeCurrent = function() {
 		//store all
 		var tag = currentTag().split('');
 		storage.setData('onoff', tag[0], editors['onoff'].getPoints());
 		storage.setData('freq', tag[1], editors['freq'].getPoints());
 		storage.setData('amp', tag[2], editors['amp'].getPoints());
-		storage.setData('iw', tag[3], editors['iw'].getPoints());
-
+		storage.setData('iw', tag[3], editors['iw'].getPoints());	
 		storage.setData('adjust', 'A', editors['adjust'].getPoints());	
-		var text = storage.export();
+	}
 
+	var exportTrack = function() {
+		storeCurrent();
+		var text = storage.export();
 		$('#export_data').val(text);
+	}
+
+	$('#export').click(function(event) {
+		storeCurrent();
+		updateTrackList();
 		$('.modal-lock').show();
 	});
 
 	$('#btn-close').click(function(){
 		$('.modal-lock').hide();
+	});
+
+	$('#save_name').val('Track ' + trackCount);
+
+	$('#load_name').click(function(event) {
+		$('#save_name').val($('#load_name').val());
+	});
+
+	$('#btn-save').click(function(event){
+		var name = $('#save_name').val();
+		var track = storage.getAll();
+		localStorage.setItem(name, JSON.stringify(track));
+		updateTrackList();
+	});
+
+	$('#btn-delete').click(function(event) {
+		var name = $('#load_name').val();
+		if (name && confirm("Delete " + name + "?")){
+			localStorage.removeItem(name);
+			updateTrackList();
+		}
+
+	});
+
+	$('#btn-load').click(function(event) {
+		var name = $('#load_name').val();
+		if (name) {
+			var track = JSON.parse(localStorage.getItem(name));
+			storage.setAll(track);
+
+			editors['onoff'].setPoints(storage.getData('onoff', 'A'));
+			editors['freq'].setPoints(storage.getData('freq', 'A'));
+			editors['amp'].setPoints(storage.getData('amp', 'A'));
+			editors['iw'].setPoints(storage.getData('iw', 'A'));
+			editors['adjust'].setPoints(storage.getData('adjust', 'A'));
+
+			exportTrack();
+			$('.left-right-counter-value').val('A');
+		}
 	});
 });
 
