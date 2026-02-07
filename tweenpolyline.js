@@ -135,9 +135,8 @@ TweenPolyline.prototype.beforeMove = function (i) {
   this.highlighted.sort(function (a, b) {
     return a - b;
   });
-  for (j in this.highlighted) {
+  for (const [j, k] of this.highlighted.entries()) {
     //point index
-    var k = this.highlighted[j];
     var n = this.highlighted[0];
     var dx = this.points[k].x - this.points[n].x;
     var dy = this.points[k].y - this.points[n].y;
@@ -172,8 +171,7 @@ TweenPolyline.prototype.movePoints = function (i, x, y) {
   if (y < this.minY) y = this.minY;
 
   //move
-  for (j in this.highlighted) {
-    var k = this.highlighted[j]; //point index
+  for (const [j, k] of this.highlighted.entries()) {
     if (first == k) {
       this.points[k].y = y;
       if (k != 0) this.points[k].x = x;
@@ -196,12 +194,9 @@ TweenPolyline.prototype.highlightPoint = function (i) {
 };
 
 TweenPolyline.prototype.setTag = function (tag) {
-  for (j in this.highlighted) {
-    //point index
-    var k = this.highlighted[j];
+  for (const k of this.highlighted) {
     this.points[k].tag = tag;
   }
-  //this.cleanTags('AAAA');
 };
 
 TweenPolyline.prototype.cleanTags = function (firstTag) {

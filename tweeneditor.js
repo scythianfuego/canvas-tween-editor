@@ -19,7 +19,7 @@ var TweenEditor = function (element, options) {
 
   //overwrite options
   this.options = defaults;
-  for (var attrname in options) {
+  for (const attrname of Object.keys(options)) {
     this.options[attrname] = options[attrname];
   }
 
@@ -36,7 +36,7 @@ var TweenEditor = function (element, options) {
     this.foundPoint = -1;
 
     this.set = function (obj2) {
-      for (var attrname in obj2) {
+      for (const attrname of Object.keys(obj2)) {
         this[attrname] = obj2[attrname];
       }
       if (obj2.cursor) {
@@ -44,30 +44,6 @@ var TweenEditor = function (element, options) {
       }
     };
   };
-
-  this.requestAnimFrame = (function () {
-    return (
-      window.requestAnimationFrame ||
-      window.webkitRequestAnimationFrame ||
-      window.mozRequestAnimationFrame ||
-      window.oRequestAnimationFrame ||
-      window.msRequestAnimationFrame ||
-      function (callback) {
-        window.setTimeout(callback, 1000 / 60);
-      }
-    );
-  })();
-
-  this.cancelRequestAnimFrame = (function () {
-    return (
-      window.cancelAnimationFrame ||
-      window.webkitCancelRequestAnimationFrame ||
-      window.mozCancelRequestAnimationFrame ||
-      window.oCancelRequestAnimationFrame ||
-      window.msCancelRequestAnimationFrame ||
-      clearTimeout
-    );
-  })();
 
   var canvas = document.createElement("canvas");
   canvas.width = this.options.width;
@@ -108,17 +84,11 @@ var TweenEditor = function (element, options) {
   //element.onmouseup = this.onmouseup();
   element.oncontextmenu = this.oncontextmenu();
   this.dblclick = this.ondblclick();
-
-  if ("onwheel" in document) {
-    element.onwheel = this.onmousewheel();
-  } else {
-    element.onmousewheel = this.onmousewheel();
-  }
+  element.onwheel = this.onmousewheel();
 
   this.animLastFrameTimestamp = 0;
   this.animForceUpdate = 0;
-  this.frameRequest = this.requestAnimFrame.call(
-    window,
+  this.frameRequest = window.requestAnimationFrame(
     this.updateAnimationFunc(this),
   );
   this.Draw();
@@ -175,7 +145,7 @@ TweenEditor.prototype.setPoints = function (points) {
 };
 
 TweenEditor.prototype.destroy = function () {
-  this.cancelRequestAnimFrame(this.frameRequest);
+  window.cancelAnimationFrame(this.frameRequest);
 };
 
 TweenEditor.prototype.updateAnimationFunc = function (self) {
@@ -186,8 +156,8 @@ TweenEditor.prototype.updateAnimationFunc = function (self) {
       self.animForceUpdate = 0;
       self.Draw();
     }
-    self.frameRequest = self.requestAnimFrame.call(
-      window,
+    window.cancelAnimationFrame(self.frameRequest);
+    self.frameRequest = window.requestAnimationFrame(
       self.updateAnimationFunc(self),
     );
   };
@@ -227,13 +197,6 @@ check if drag
 check if point is under and points selected
 */
 
-TweenEditor.prototype.calcOffsets = function (event) {
-  if (!event.hasOwnProperty("offsetX")) {
-    event.offsetX = event.layerX - event.target.offsetLeft;
-    event.offsetY = event.layerY - event.target.offsetTop;
-  }
-};
-
 TweenEditor.prototype.onmousewheel = function () {
   var self = this;
   return function (event) {
@@ -248,7 +211,6 @@ TweenEditor.prototype.onmousemove = function () {
     if (event.target != self.element.getElementsByTagName("canvas")[0]) return;
 
     self.animForceUpdate = 1;
-    self.calcOffsets(event);
     var x = event.offsetX;
     var y = event.offsetY;
     var ts = self.xToTimestamp(x);
@@ -291,7 +253,7 @@ TweenEditor.prototype.onmousemove = function () {
 
     if (!self.mouse.drag && !self.mouse.pointDrag) return; //all the other actions are made in onclick
 
-    if (self.mouse.button == 1 && self.mouse.pressed) {
+    if (self.mouse.button == 0 && self.mouse.pressed) {
       //left
 
       if (self.mouse.pointDrag) {
@@ -319,7 +281,7 @@ TweenEditor.prototype.onmousemove = function () {
       }
     }
 
-    if (self.mouse.button == 3 && self.mouse.pressed) {
+    if (self.mouse.button == 2 && self.mouse.pressed) {
       //right
 
       var t = self.xToTimestamp(x);
@@ -350,7 +312,6 @@ TweenEditor.prototype.onmousedown = function () {
 
     self.animForceUpdate = 1;
     event.preventDefault();
-    self.calcOffsets(event);
     var x = event.offsetX;
     var y = event.offsetY;
     var t = self.xToTimestamp(x);
@@ -374,7 +335,7 @@ TweenEditor.prototype.onmousedown = function () {
       originalY: y,
       startTime: self.startTime,
       endTime: self.endTime,
-      button: event.which,
+      button: event.button,
     };
     self.mouse.set(mouse);
   };
@@ -388,7 +349,6 @@ TweenEditor.prototype.onmouseup = function () {
     //if (event.target != self.element.getElementsByTagName('canvas')[0])
     //    return;
 
-    self.calcOffsets(event);
     var x = event.offsetX;
     var y = event.offsetY;
     self.mouse.set({
@@ -405,8 +365,8 @@ TweenEditor.prototype.onmouseup = function () {
 
     if (Math.abs(self.mouse.originalX - x) < 3) {
       //click
-      if (self.mouse.button == 1) self.onleftclick(event);
-      if (self.mouse.button == 3) self.onrightclick(event);
+      if (self.mouse.button == 0) self.onleftclick(event);
+      if (self.mouse.button == 2) self.onrightclick(event);
     }
     //event.preventDefault();
   };
@@ -418,7 +378,6 @@ TweenEditor.prototype.onleftclick = function (event) {
   self.animForceUpdate = 1;
 
   //handle click
-  self.calcOffsets(event);
   var x = event.offsetX;
   var y = event.offsetY;
 
@@ -435,7 +394,7 @@ TweenEditor.prototype.onleftclick = function (event) {
     self.line.clearHighlight();
     self.line.highlightPoint(point);
   } else {
-    if (event.which == 1) {
+    if (event.button == 0) {
       //left
 
       if (self.line.highlighted.length > 0) {
@@ -454,7 +413,6 @@ TweenEditor.prototype.onleftclick = function (event) {
 TweenEditor.prototype.onrightclick = function (event) {
   var self = this;
   event.preventDefault();
-  self.calcOffsets(event);
   var x = event.offsetX;
   var y = event.offsetY;
   var point = self.line.findPointAt(x, y);
@@ -572,11 +530,9 @@ TweenEditor.prototype.mapToValue = function (map) {
 TweenEditor.prototype.Zoom = function (event, external) {
   var self = this;
 
-  var x = event.offsetX ? event.offsetX : event.layerX;
+  var x = event.offsetX;
   var t = self.xToTimestamp(x);
-  var delta = event.wheelDelta ? -event.wheelDelta / 120 : event.deltaY;
-  var zoomfactor = delta; //120 per click, -> 1
-
+  var zoomfactor = event.deltaY > 0 ? 1 : -1; // 5% per scroll event, ignore units
   var proportion = Math.abs(self.startTime - self.endTime) * 0.05; // %
   var proportion_y =
     (t - self.startTime) / Math.abs(self.startTime - self.endTime);
@@ -717,7 +673,7 @@ TweenEditor.prototype.DrawGrid = function () {
     x,
     this.options.gridHeight + this.options.marginTop,
   );
-  if (this.mouse.drag && this.mouse.button == 1) {
+  if (this.mouse.drag && this.mouse.button == 0) {
     var x1 = this.timestampToX(this.mouse.time);
     this.DrawBox(
       ctx,

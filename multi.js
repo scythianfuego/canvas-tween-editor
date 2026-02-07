@@ -1,12 +1,8 @@
-$(document).ready(function () {
+const ready = () => {
   var storage = new Storage();
 
   $(".left-right-counter").each(function (index, el) {
-    // prettier-ignore
-    var alphabet = [
-			'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P',	//16
-			'Q','R','S','T','U','V','W','X','Y','Z'
-		];
+    var alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
     var leftArrow = $(
       '<i class="fa fa-chevron-circle-left fakelink left-arrow"></i>',
     );
@@ -74,10 +70,10 @@ $(document).ready(function () {
 
     $("#set").click(setPoint);
     $("#point_time").keyup(function (event) {
-      if (event.keyCode == 13) setPoint();
+      if (event.key === "Enter") setPoint();
     });
     $("#point_value").keyup(function (event) {
-      if (event.keyCode == 13) setPoint();
+      if (event.key === "Enter") setPoint();
     });
 
     var editors = {
@@ -238,4 +234,10 @@ $(document).ready(function () {
       }
     });
   });
-});
+};
+
+if (document.readyState !== "loading") {
+  ready();
+} else {
+  document.addEventListener("DOMContentLoaded", ready);
+}

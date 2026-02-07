@@ -92,7 +92,7 @@ Storage.prototype.export = function () {
     var hex = Number(Math.floor(d)).toString(16);
     var pad = "00000000";
     pad = pad.slice(0, bytes * 2);
-    hex = pad.substr(0, bytes * 2 - hex.length) + hex;
+    hex = pad.substring(0, bytes * 2 - hex.length) + hex;
     return hex;
   }
 
