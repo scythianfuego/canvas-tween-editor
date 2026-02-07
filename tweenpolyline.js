@@ -66,14 +66,8 @@ TweenPolyline.prototype.smartPoint = function (index) {
       var seconds = Math.floor((x / 48000) % 60);
       var samples = x % 48000;
 
-      var xText = seconds + "." + ("00000" + samples).slice(-5);
-      if (minutes)
-        xText =
-          minutes +
-          ":" +
-          ("00" + seconds).slice(-2) +
-          "." +
-          ("00000" + samples).slice(-5);
+      var xText = `${seconds}.${samples.padStart(5, "0")}`;
+      if (minutes) xText = `${minutes}:${xText}`;
       return xText;
     }
   };
@@ -91,7 +85,7 @@ TweenPolyline.prototype.Draw = function (ctx) {
     var ex = this.e.timestampToX(this.points[i].x);
     var ey = this.e.valueToY(this.points[i].y);
 
-    if (this.highlighted.indexOf(i) != -1) ctx.fillStyle = "red";
+    if (!this.highlighted.includes(i)) ctx.fillStyle = "red";
 
     this.e.DrawAnchoredLine(ctx, sx, sy, ex, ey);
 
@@ -101,7 +95,7 @@ TweenPolyline.prototype.Draw = function (ctx) {
     ctx.fillStyle = "#000";
   }
 
-  if (this.highlighted.indexOf(0) != -1)
+  if (!this.highlighted.includes(0))
     //first point
     ctx.fillStyle = "red";
 
@@ -144,8 +138,8 @@ TweenPolyline.prototype.beforeMove = function (i) {
     dy_arr.push(dy);
   }
   this.selectionOffsets = selectionOffsets;
-  var maxOffsetY = Math.max.apply(Math, dy_arr);
-  var minOffsetY = Math.min.apply(Math, dy_arr);
+  var maxOffsetY = Math.max(...dy_arr);
+  var minOffsetY = Math.min(...dy_arr);
   this.maxY = this.e.options.maxUnmapped - maxOffsetY;
   this.minY = -minOffsetY;
   this.maxOffset = selectionOffsets[selectionOffsets.length - 1].dx;
@@ -189,7 +183,7 @@ TweenPolyline.prototype.deletePoint = function (i) {
 
 TweenPolyline.prototype.highlightPoint = function (i) {
   if (i >= 0) {
-    if (this.highlighted.indexOf(i) == -1) this.highlighted.push(i);
+    if (!this.highlighted.includes(i)) this.highlighted.push(i);
   }
 };
 

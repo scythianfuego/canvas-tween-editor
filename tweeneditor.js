@@ -18,10 +18,7 @@ var TweenEditor = function (element, options) {
   };
 
   //overwrite options
-  this.options = defaults;
-  for (const attrname of Object.keys(options)) {
-    this.options[attrname] = options[attrname];
-  }
+  this.options = { ...defaults, ...options };
 
   var MouseInfo = function (element) {
     //mouse tools
@@ -167,9 +164,9 @@ TweenEditor.prototype.updateAnimationFunc = function (self) {
 //tools
 
 TweenEditor.prototype.formatTs = function (ts) {
-  var pad = "00000";
-  var str = Math.floor(ts % 48000) + "";
-  var samples = pad.substring(0, pad.length - str.length) + str;
+  const samples = Math.floor(ts % 48000)
+    .toString()
+    .padStart(5, "0");
   return Math.floor(ts / 48000) + "." + samples + "s";
 };
 
@@ -325,7 +322,7 @@ TweenEditor.prototype.onmousedown = function () {
       }
     }, 10);
 
-    if (foundPoint != -1 && self.line.highlighted.indexOf(foundPoint) == -1)
+    if (foundPoint != -1 && !self.line.highlighted.includes(foundPoint))
       self.line.clearHighlight(); //clear previous selection
 
     var mouse = {
@@ -599,13 +596,10 @@ TweenEditor.prototype.samplesToTick = function (samples) {
   var seconds = Math.floor(samples / 48000);
   var minutes = Math.floor(seconds / 60);
   var samples = samples % 48000;
-  var modseconds = seconds % 60;
-  if (modseconds < 10) modseconds = "0" + modseconds;
+  var modseconds = (seconds % 60).toString().padStart(2, "0");
 
   if (minutes) return minutes + ":" + modseconds + "s";
-
   if (samples) return seconds + "." + samples;
-
   return seconds + "s";
 };
 
@@ -618,7 +612,7 @@ TweenEditor.prototype.DrawGrid = function () {
   var stepCount = 16;
   var width = this.options.gridWidth;
   var height = this.options.gridHeight;
-  var hstep = width / stepCount;
+
   for (var i = stepCount; i >= 0; i--) {
     var x = Math.floor(
       i * cellSize.px + this.options.marginLeft + cellSize.offset,

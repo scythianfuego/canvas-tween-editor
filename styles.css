@@ -13,8 +13,7 @@ input[type="text"] {
   color: #000;
 
   outline: none;
-  -webkit-appearance: none;
-  -webkit-focus-ring-color: rgba(0 0 0 0);
+  appearance: none;
 }
 input[type="checkbox"] {
   vertical-align: middle;
@@ -113,8 +112,7 @@ button {
   vertical-align: middle;
 
   outline: none;
-  -webkit-appearance: none;
-  /*-webkit-focus-ring-color:rgba(0 0 0 0);*/
+  appearance: none;
   background: #ddd;
   background: #ff9900;
   padding: 0.5rem 1rem;
@@ -157,10 +155,8 @@ label.cb {
 }
 
 .left-right-counter {
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
   user-select: none;
+  -webkit-user-select: none;
 }
 
 input.left-right-counter-value {

@@ -162,7 +162,7 @@ const ready = () => {
     var updateTrackList = function () {
       trackCount = 0;
       $("#load_name").html("");
-      for (var i in localStorage) {
+      for (const i of Object.keys(localStorage)) {
         var o = $("<option>").attr("name", i).text(i);
         $("#load_name").append(o);
         trackCount++;

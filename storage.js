@@ -5,13 +5,13 @@ var Storage = function () {
 Storage.prototype.setData = function (track, index, data) {
   if (!this.data[track]) this.data[track] = {};
 
-  var track = this.data[track];
-  track[index] = data;
+  var t = this.data[track];
+  t[index] = data;
 };
 
 Storage.prototype.getData = function (track, index) {
-  var track = this.data[track];
-  if (track[index]) return track[index];
+  var t = this.data[track];
+  if (t[index]) return t[index];
 
   return [];
 };
@@ -64,10 +64,9 @@ Storage.prototype.export = function () {
   var used_loops = [[], [], [], []];
   for (var i = 0; i < adjust.length; i++) {
     if (adjust[i].tag) {
-      tagdata = adjust[i].tag.split("");
+      var tagdata = adjust[i].tag.split("");
       for (var j = 0; j < 4; j++) {
-        if (used_loops[j].indexOf(tagdata[j]) == -1)
-          used_loops[j].push(tagdata[j]);
+        if (!used_loops[j].includes(tagdata[j])) used_loops[j].push(tagdata[j]);
       }
     }
   }
@@ -89,11 +88,9 @@ Storage.prototype.export = function () {
   }
 
   function toHex(d, bytes) {
-    var hex = Number(Math.floor(d)).toString(16);
-    var pad = "00000000";
-    pad = pad.slice(0, bytes * 2);
-    hex = pad.substring(0, bytes * 2 - hex.length) + hex;
-    return hex;
+    return Number(Math.floor(d))
+      .toString(16)
+      .padStart(bytes * 2, "0");
   }
 
   var out = "";
