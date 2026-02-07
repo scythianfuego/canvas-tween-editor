@@ -1,16 +1,16 @@
-var Storage = function () {
+const Storage = function () {
   this.data = {};
 };
 
 Storage.prototype.setData = function (track, index, data) {
   if (!this.data[track]) this.data[track] = {};
 
-  var t = this.data[track];
+  const t = this.data[track];
   t[index] = data;
 };
 
 Storage.prototype.getData = function (track, index) {
-  var t = this.data[track];
+  const t = this.data[track];
   if (t[index]) return t[index];
 
   return [];
@@ -54,30 +54,30 @@ struct trackDataEx {
 }
 */
 Storage.prototype.export = function () {
-  var segments_count = 0;
-  var loops_count = 0;
+  const segments_count = 0;
+  const loops_count = 0;
 
-  var adjust = this.data["adjust"]["A"];
-  var tracks = ["onoff", "freq", "amp", "iw"];
+  const adjust = this.data["adjust"]["A"];
+  const tracks = ["onoff", "freq", "amp", "iw"];
 
   //determine used loops
-  var used_loops = [[], [], [], []];
-  for (var i = 0; i < adjust.length; i++) {
+  const used_loops = [[], [], [], []];
+  for (let i = 0; i < adjust.length; i++) {
     if (adjust[i].tag) {
-      var tagdata = adjust[i].tag.split("");
-      for (var j = 0; j < 4; j++) {
+      const tagdata = adjust[i].tag.split("");
+      for (let j = 0; j < 4; j++) {
         if (!used_loops[j].includes(tagdata[j])) used_loops[j].push(tagdata[j]);
       }
     }
   }
 
   //push segments
-  var loops = [[], [], [], []];
-  var segments = [];
-  for (var j = 0; j < 4; j++) {
-    for (var i = 0; i < used_loops[j].length; i++) {
-      var trackdata = this.data[tracks[j]];
-      var points = trackdata[used_loops[j][i]];
+  const loops = [[], [], [], []];
+  let segments = [];
+  for (let j = 0; j < 4; j++) {
+    for (let i = 0; i < used_loops[j].length; i++) {
+      const trackdata = this.data[tracks[j]];
+      const points = trackdata[used_loops[j][i]];
 
       loops[j][i] = segments.length;
       segments = segments.concat(points);
@@ -93,9 +93,9 @@ Storage.prototype.export = function () {
       .padStart(bytes * 2, "0");
   }
 
-  var out = "";
+  let out = "";
   out += "//loops\n";
-  for (var i = 0; i < loops[0].length; i++) {
+  for (let i = 0; i < loops[0].length; i++) {
     //point_time
     out += "0x" + toHex(loops[0][i], 2) + ", ";
     out += "0x" + toHex(loops[1][i], 2) + ", ";
@@ -103,12 +103,12 @@ Storage.prototype.export = function () {
     out += "0x" + toHex(loops[3][i], 2) + ", ";
   }
   out += "\n//time\n";
-  for (var i = 0; i < segments.length; i++) {
+  for (let i = 0; i < segments.length; i++) {
     //point_time
     out += "0x" + toHex(segments[i].x, 4) + ", ";
   }
   out += "\n//value\n";
-  for (var i = 0; i < segments.length; i++) {
+  for (let i = 0; i < segments.length; i++) {
     //point_value
     out += "0x" + toHex(segments[i].y, 2) + ", ";
   }

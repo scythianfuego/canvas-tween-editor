@@ -7,9 +7,9 @@ TweenPolyline = function (editor) {
 };
 
 TweenPolyline.prototype.smartPoint = function (index) {
-  var point = {};
-  var pointIndex = index; //closure
-  var self = this;
+  const point = {};
+  const pointIndex = index; //closure
+  const self = this;
   point.x = function (value) {
     if (typeof value !== "undefined") {
       self.points[pointIndex].x = value;
@@ -35,17 +35,17 @@ TweenPolyline.prototype.smartPoint = function (index) {
       value = self.e.mapToValue(value);
       return point.y(value);
     } else {
-      var y = point.y();
+      let y = point.y();
       y = self.e.valueToMap(y);
       return Math.round(y);
     }
   };
   point.formatX = function (value) {
     if (typeof value !== "undefined") {
-      var time = value.split(".");
-      var samples = 0;
-      var seconds = 0;
-      var minutes = 0;
+      let time = value.split(".");
+      let samples = 0;
+      let seconds = 0;
+      let minutes = 0;
       if (time.length > 1) {
         samples = Number(time[1]);
         seconds = time[0].split(":");
@@ -61,12 +61,12 @@ TweenPolyline.prototype.smartPoint = function (index) {
       time = samples + seconds * 48000 + minutes * 60 * 48000;
       return point.x(time);
     } else {
-      var x = point.x();
-      var minutes = Math.floor(x / (48000 * 60));
-      var seconds = Math.floor((x / 48000) % 60);
-      var samples = x % 48000;
+      const x = point.x();
+      const minutes = Math.floor(x / (48000 * 60));
+      const seconds = Math.floor((x / 48000) % 60);
+      const samples = x % 48000;
 
-      var xText = `${seconds}.${samples.padStart(5, "0")}`;
+      let xText = `${seconds}.${samples.padStart(5, "0")}`;
       if (minutes) xText = `${minutes}:${xText}`;
       return xText;
     }
@@ -79,13 +79,13 @@ TweenPolyline.prototype.smartPoint = function (index) {
 };
 
 TweenPolyline.prototype.Draw = function (ctx) {
-  for (var i = this.points.length - 1; i > 0; i--) {
-    var sx = this.e.timestampToX(this.points[i - 1].x);
-    var sy = this.e.valueToY(this.points[i - 1].y);
-    var ex = this.e.timestampToX(this.points[i].x);
-    var ey = this.e.valueToY(this.points[i].y);
+  for (let i = this.points.length - 1; i > 0; i--) {
+    const sx = this.e.timestampToX(this.points[i - 1].x);
+    const sy = this.e.valueToY(this.points[i - 1].y);
+    const ex = this.e.timestampToX(this.points[i].x);
+    const ey = this.e.valueToY(this.points[i].y);
 
-    if (!this.highlighted.includes(i)) ctx.fillStyle = "red";
+    if (this.highlighted.includes(i)) ctx.fillStyle = "red";
 
     this.e.DrawAnchoredLine(ctx, sx, sy, ex, ey);
 
@@ -95,12 +95,12 @@ TweenPolyline.prototype.Draw = function (ctx) {
     ctx.fillStyle = "#000";
   }
 
-  if (!this.highlighted.includes(0))
+  if (this.highlighted.includes(0))
     //first point
     ctx.fillStyle = "red";
 
-  var zeroX = this.e.timestampToX(this.points[0].x);
-  var zeroY = this.e.valueToY(this.points[0].y);
+  const zeroX = this.e.timestampToX(this.points[0].x);
+  const zeroY = this.e.valueToY(this.points[0].y);
   this.e.DrawAnchor(ctx, zeroX, zeroY);
 
   if (this.points[0].tag && this.points[0].tag.length) {
@@ -114,48 +114,48 @@ TweenPolyline.prototype.push = function (point) {
 };
 
 TweenPolyline.prototype.findPointAt = function (x, y) {
-  for (var i = this.points.length - 1; i >= 0; i--) {
-    var px = this.e.timestampToX(this.points[i].x);
-    var py = this.e.valueToY(this.points[i].y);
-    var delta = 10;
+  for (let i = this.points.length - 1; i >= 0; i--) {
+    const px = this.e.timestampToX(this.points[i].x);
+    const py = this.e.valueToY(this.points[i].y);
+    const delta = 10;
     if (Math.abs(px - x) < delta && Math.abs(py - y) < delta) return i;
   }
   return -1;
 };
 
 TweenPolyline.prototype.beforeMove = function (i) {
-  var selectionOffsets = [];
-  var dy_arr = [];
+  const selectionOffsets = [];
+  const dy_arr = [];
   this.highlighted.sort(function (a, b) {
     return a - b;
   });
   for (const [j, k] of this.highlighted.entries()) {
     //point index
-    var n = this.highlighted[0];
-    var dx = this.points[k].x - this.points[n].x;
-    var dy = this.points[k].y - this.points[n].y;
+    const n = this.highlighted[0];
+    const dx = this.points[k].x - this.points[n].x;
+    const dy = this.points[k].y - this.points[n].y;
     selectionOffsets[j] = { dx: dx, dy: dy };
     dy_arr.push(dy);
   }
   this.selectionOffsets = selectionOffsets;
-  var maxOffsetY = Math.max(...dy_arr);
-  var minOffsetY = Math.min(...dy_arr);
+  const maxOffsetY = Math.max(...dy_arr);
+  const minOffsetY = Math.min(...dy_arr);
   this.maxY = this.e.options.maxUnmapped - maxOffsetY;
   this.minY = -minOffsetY;
   this.maxOffset = selectionOffsets[selectionOffsets.length - 1].dx;
 };
 
 TweenPolyline.prototype.movePoints = function (i, x, y) {
-  var index = this.highlighted.indexOf(i);
+  const index = this.highlighted.indexOf(i);
   x -= this.selectionOffsets[index].dx;
   y -= this.selectionOffsets[index].dy;
 
   //bounding box
-  var first = this.highlighted[0];
+  const first = this.highlighted[0];
   if (first != 0)
     if (x < this.points[first - 1].x) x = this.points[first - 1].x;
 
-  var last = this.highlighted[this.highlighted.length - 1];
+  const last = this.highlighted[this.highlighted.length - 1];
   if (this.points.length - 1 > last)
     if (x + this.maxOffset > this.points[last + 1].x)
       x = this.points[last + 1].x - this.maxOffset;
@@ -196,7 +196,7 @@ TweenPolyline.prototype.setTag = function (tag) {
 TweenPolyline.prototype.cleanTags = function (firstTag) {
   if (!this.points[0].tag) this.points[0].tag = firstTag;
 
-  for (var i = 1; i < this.points.length; i++) {
+  for (let i = 1; i < this.points.length; i++) {
     if (this.points[i].tag && this.points[i].tag != firstTag) {
       firstTag = this.points[i].tag;
     } else {
@@ -208,7 +208,7 @@ TweenPolyline.prototype.cleanTags = function (firstTag) {
 TweenPolyline.prototype.highlightRange = function (x1, x2) {
   if (x1 > x2) x1 = [x2, (x2 = x1)][0]; //swap
 
-  for (var i = 0; i < this.points.length; i++)
+  for (let i = 0; i < this.points.length; i++)
     if (this.points[i].x < x2 && this.points[i].x > x1)
       this.highlighted.push(i);
 };
@@ -218,11 +218,11 @@ TweenPolyline.prototype.clearHighlight = function (i) {
 };
 
 TweenPolyline.prototype.addPoint = function (x, y) {
-  var l = this.points.length - 1;
+  const l = this.points.length - 1;
   if (x > this.points[l].x) {
     this.points.push({ x: x, y: y });
   } else {
-    for (var i = this.points.length - 1; i > 0; i--)
+    for (let i = this.points.length - 1; i > 0; i--)
       if (this.points[i - 1].x < x && this.points[i].x > x) {
         this.points.splice(i, 0, { x: x, y: y });
         return;

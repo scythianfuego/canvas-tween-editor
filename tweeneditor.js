@@ -1,5 +1,5 @@
-var TweenEditor = function (element, options) {
-  var defaults = {
+const TweenEditor = function (element, options) {
+  const defaults = {
     width: 800,
     height: 250,
     startTime: 0,
@@ -20,7 +20,7 @@ var TweenEditor = function (element, options) {
   //overwrite options
   this.options = { ...defaults, ...options };
 
-  var MouseInfo = function (element) {
+  const MouseInfo = function (element) {
     //mouse tools
     this.pressed = false;
     this.startTime = null;
@@ -42,7 +42,7 @@ var TweenEditor = function (element, options) {
     };
   };
 
-  var canvas = document.createElement("canvas");
+  const canvas = document.createElement("canvas");
   canvas.width = this.options.width;
   canvas.height = this.options.height;
   element.appendChild(canvas);
@@ -59,11 +59,10 @@ var TweenEditor = function (element, options) {
 
   this.line.push({ x: 0, y: this.options.maxUnmapped / 2 });
 
-  //speed test
-  /*
-    for (var i = 0; i < 100; i++) {
-        this.line.push({x: i*2000, y : (i % 2)*32768});
-    };*/
+  //performance test
+  // for (let i = 0; i < 10000; i++) {
+  //   this.line.push({ x: i * 2000, y: (i % 2) * 400 });
+  // }
 
   this.options.gridHeight =
     this.height - this.options.marginTop - this.options.marginBottom;
@@ -92,13 +91,13 @@ var TweenEditor = function (element, options) {
 };
 
 TweenEditor.link = function (siblings) {
-  for (var i = siblings.length - 1; i >= 0; i--) {
+  for (let i = siblings.length - 1; i >= 0; i--) {
     siblings[i].listenToEvent("subscribe", siblings);
   }
 };
 
 TweenEditor.prototype.emitEvent = function (eventName, event) {
-  for (var i = this.siblings.length - 1; i >= 0; i--) {
+  for (let i = this.siblings.length - 1; i >= 0; i--) {
     this.siblings[i].listenToEvent(eventName, event);
   }
 };
@@ -106,7 +105,7 @@ TweenEditor.prototype.emitEvent = function (eventName, event) {
 TweenEditor.prototype.listenToEvent = function (eventName, event) {
   switch (eventName) {
     case "subscribe":
-      var me = event.indexOf(this);
+      const me = event.indexOf(this);
       if (me != -1) {
         this.siblings = event.slice(0); //clone
         this.siblings.splice(me, 1); //remove self
@@ -146,8 +145,7 @@ TweenEditor.prototype.destroy = function () {
 };
 
 TweenEditor.prototype.updateAnimationFunc = function (self) {
-  var result = function (timestamp) {
-    //var delta = timestamp - self.animLastFrameTimestamp;
+  const result = function (timestamp) {
     if (self.animForceUpdate) {
       self.animLastFrameTimestamp = timestamp;
       self.animForceUpdate = 0;
@@ -171,7 +169,7 @@ TweenEditor.prototype.formatTs = function (ts) {
 };
 
 TweenEditor.prototype.comment = function (str) {
-  var el = document.getElementById("comment");
+  const el = document.getElementById("comment");
   el.innerHTML = str;
 };
 
@@ -195,7 +193,7 @@ check if point is under and points selected
 */
 
 TweenEditor.prototype.onmousewheel = function () {
-  var self = this;
+  const self = this;
   return function (event) {
     event.preventDefault();
     self.Zoom(event);
@@ -203,14 +201,14 @@ TweenEditor.prototype.onmousewheel = function () {
 };
 
 TweenEditor.prototype.onmousemove = function () {
-  var self = this;
-  var handler = function (event) {
+  const self = this;
+  const handler = function (event) {
     if (event.target != self.element.getElementsByTagName("canvas")[0]) return;
 
     self.animForceUpdate = 1;
-    var x = event.offsetX;
-    var y = event.offsetY;
-    var ts = self.xToTimestamp(x);
+    const x = event.offsetX;
+    const y = event.offsetY;
+    const ts = self.xToTimestamp(x);
     self.comment(
       self.formatTs(ts) +
         "&emsp;" +
@@ -219,11 +217,11 @@ TweenEditor.prototype.onmousemove = function () {
         self.formatTs(self.endTime) +
         "&emsp;",
     );
-    var mouse = { x: x, y: y };
+    const mouse = { x: x, y: y };
     self.mouse.set(mouse);
     self.emitEvent("mouse", mouse);
 
-    var foundPoint = self.line.findPointAt(x, y);
+    const foundPoint = self.line.findPointAt(x, y);
     if (!self.mouse.pressed) {
       self.mouse.set({ foundPoint: foundPoint });
       if (foundPoint != -1) self.mouse.set({ cursor: "pointer" });
@@ -255,8 +253,8 @@ TweenEditor.prototype.onmousemove = function () {
 
       if (self.mouse.pointDrag) {
         //point dragging
-        var px = self.xToTimestamp(x);
-        var py = self.yToValue(y);
+        const px = self.xToTimestamp(x);
+        const py = self.yToValue(y);
         self.line.movePoints(self.mouse.pointDragAnchor, px, py);
 
         if (self.line.highlighted.length == 1 && self.onPointSelection) {
@@ -268,8 +266,8 @@ TweenEditor.prototype.onmousemove = function () {
       }
 
       //range selection
-      var x1 = self.mouse.time;
-      var x2 = ts;
+      const x1 = self.mouse.time;
+      const x2 = ts;
       self.line.clearHighlight();
       self.line.highlightRange(x1, x2);
 
@@ -281,17 +279,17 @@ TweenEditor.prototype.onmousemove = function () {
     if (self.mouse.button == 2 && self.mouse.pressed) {
       //right
 
-      var t = self.xToTimestamp(x);
-      var delta = self.mouse.time - t;
+      const t = self.xToTimestamp(x);
+      const delta = self.mouse.time - t;
       self.startTime = self.mouse.startTime + delta;
       self.endTime = self.mouse.endTime + delta;
-      var mouse = {
+      const rightMouse = {
         startTime: self.startTime,
         endTime: self.endTime,
         cursor: "move",
         drag: true,
       };
-      self.mouse.set(mouse);
+      self.mouse.set(rightMouse);
       self.emitEvent("time", {
         startTime: self.startTime,
         endTime: self.endTime,
@@ -303,17 +301,17 @@ TweenEditor.prototype.onmousemove = function () {
 };
 
 TweenEditor.prototype.onmousedown = function () {
-  var self = this;
-  var handler = function (event) {
+  const self = this;
+  const handler = function (event) {
     if (event.target != self.element.getElementsByTagName("canvas")[0]) return;
 
     self.animForceUpdate = 1;
     event.preventDefault();
-    var x = event.offsetX;
-    var y = event.offsetY;
-    var t = self.xToTimestamp(x);
+    const x = event.offsetX;
+    const y = event.offsetY;
+    const t = self.xToTimestamp(x);
 
-    var foundPoint = self.line.findPointAt(x, y);
+    const foundPoint = self.line.findPointAt(x, y);
     setTimeout(function () {
       if (foundPoint != -1) {
         self.mouse.set({ cursor: "move" });
@@ -325,7 +323,7 @@ TweenEditor.prototype.onmousedown = function () {
     if (foundPoint != -1 && !self.line.highlighted.includes(foundPoint))
       self.line.clearHighlight(); //clear previous selection
 
-    var mouse = {
+    const mouse = {
       pressed: true,
       time: t,
       originalX: x,
@@ -341,13 +339,13 @@ TweenEditor.prototype.onmousedown = function () {
 };
 
 TweenEditor.prototype.onmouseup = function () {
-  var self = this;
-  var handler = function (event) {
+  const self = this;
+  const handler = function (event) {
     //if (event.target != self.element.getElementsByTagName('canvas')[0])
     //    return;
 
-    var x = event.offsetX;
-    var y = event.offsetY;
+    const x = event.offsetX;
+    const y = event.offsetY;
     self.mouse.set({
       pressed: false,
       cursor: "auto",
@@ -371,15 +369,15 @@ TweenEditor.prototype.onmouseup = function () {
 };
 
 TweenEditor.prototype.onleftclick = function (event) {
-  var self = this;
+  const self = this;
   self.animForceUpdate = 1;
 
   //handle click
-  var x = event.offsetX;
-  var y = event.offsetY;
+  let x = event.offsetX;
+  let y = event.offsetY;
 
   //find point at xy
-  var point = self.line.findPointAt(x, y);
+  const point = self.line.findPointAt(x, y);
   if (self.onPointSelection) {
     point == -1
       ? self.onPointSelection(null)
@@ -408,11 +406,11 @@ TweenEditor.prototype.onleftclick = function (event) {
 };
 
 TweenEditor.prototype.onrightclick = function (event) {
-  var self = this;
+  const self = this;
   event.preventDefault();
-  var x = event.offsetX;
-  var y = event.offsetY;
-  var point = self.line.findPointAt(x, y);
+  const x = event.offsetX;
+  const y = event.offsetY;
+  const point = self.line.findPointAt(x, y);
   if (point != -1) {
     //select point
     self.line.deletePoint(point);
@@ -423,16 +421,15 @@ TweenEditor.prototype.onrightclick = function (event) {
 };
 
 TweenEditor.prototype.oncontextmenu = function (event) {
-  var self = this;
-  var handler = function (event) {
+  const handler = function (event) {
     event.preventDefault();
   };
   return handler;
 };
 
 TweenEditor.prototype.ondblclick = function () {
-  var self = this;
-  var timeout = 0,
+  const self = this;
+  let timeout = 0,
     clicked = false;
   return function () {
     if (clicked) {
@@ -458,44 +455,33 @@ TweenEditor.prototype.ondblclick = function () {
   };
 };
 
-/*
-TweenEditor.prototype.ondblclick = function() {
-    var self = this;
-    var handler = function(event) {
-        self.startTime = 0;
-        self.endTime = 48000 * 10 * 1;
-        self.animForceUpdate = 1;
-    }
-    return handler;
-}
-*/
-
 //body
 TweenEditor.prototype.xToTimestamp = function (x) {
-  var proportion = (x - this.options.marginLeft) / this.options.gridWidth;
-  var dt = (this.endTime - this.startTime) * proportion + this.startTime;
+  const proportion = (x - this.options.marginLeft) / this.options.gridWidth;
+  const dt = (this.endTime - this.startTime) * proportion + this.startTime;
   return Math.round(dt);
 };
 
 TweenEditor.prototype.timestampToX = function (timestamp) {
-  var proportion =
+  const proportion =
     (timestamp - this.startTime) / (this.endTime - this.startTime);
-  var positionX = this.options.gridWidth * proportion + this.options.marginLeft;
+  const positionX =
+    this.options.gridWidth * proportion + this.options.marginLeft;
   return Math.round(positionX);
 };
 
 TweenEditor.prototype.yToValue = function (y) {
-  var proportion = (y - this.options.marginTop) / this.options.gridHeight;
-  var value = this.options.maxUnmapped * (1 - proportion);
+  const proportion = (y - this.options.marginTop) / this.options.gridHeight;
+  let value = this.options.maxUnmapped * (1 - proportion);
   if (value > this.options.maxUnmapped) value = this.options.maxUnmapped;
   if (value < 0) value = 0;
   return value;
 };
 
 TweenEditor.prototype.valueToY = function (value) {
-  var proportion =
+  const proportion =
     (this.options.maxUnmapped - value) / this.options.maxUnmapped;
-  var y = this.options.gridHeight * proportion + this.options.marginTop;
+  const y = this.options.gridHeight * proportion + this.options.marginTop;
   return y;
 };
 
@@ -525,13 +511,13 @@ TweenEditor.prototype.mapToValue = function (map) {
 };
 
 TweenEditor.prototype.Zoom = function (event, external) {
-  var self = this;
+  const self = this;
 
-  var x = event.offsetX;
-  var t = self.xToTimestamp(x);
-  var zoomfactor = event.deltaY > 0 ? 1 : -1; // 5% per scroll event, ignore units
-  var proportion = Math.abs(self.startTime - self.endTime) * 0.05; // %
-  var proportion_y =
+  const x = event.offsetX;
+  const t = self.xToTimestamp(x);
+  let zoomfactor = event.deltaY > 0 ? 1 : -1; // 5% per scroll event, ignore units
+  const proportion = Math.abs(self.startTime - self.endTime) * 0.05; // %
+  const proportion_y =
     (t - self.startTime) / Math.abs(self.startTime - self.endTime);
   zoomfactor *= proportion;
   self.endTime += zoomfactor * (1 - proportion_y);
@@ -544,27 +530,27 @@ TweenEditor.prototype.Zoom = function (event, external) {
 
 TweenEditor.prototype.GetContextFromCache = function (name) {
   this.canvasCache = {};
-  var canvasTemp = document.createElement("canvas");
+  const canvasTemp = document.createElement("canvas");
   canvasTemp.width = this.width;
   canvasTemp.height = this.height;
-  var ctx = canvasTemp.getContext("2d");
+  const ctx = canvasTemp.getContext("2d");
   ctx.translate(0.5, 0.5);
   return ctx;
 };
 
 TweenEditor.prototype.calcCellSize = function () {
-  var self = this;
-  var vStepCount = this.options.gridVSubdiv;
-  var minCellSizePx = (3 * this.options.gridHeight) / vStepCount; //square cell w=h
-  var hStepCount = Math.floor(this.options.gridWidth / minCellSizePx);
-  var cellSizeSamples = (this.endTime - this.startTime) / hStepCount;
+  const self = this;
+  const vStepCount = this.options.gridVSubdiv;
+  const minCellSizePx = (3 * this.options.gridHeight) / vStepCount; //square cell w=h
+  const hStepCount = Math.floor(this.options.gridWidth / minCellSizePx);
+  let cellSizeSamples = (this.endTime - this.startTime) / hStepCount;
 
   if (cellSizeSamples > 48000) {
     // > 1s
     cellSizeSamples = Math.floor(cellSizeSamples / 48000) * 48000;
   } else {
     //
-    for (var i = 48000; i > 1; i = i / 2) {
+    for (let i = 48000; i > 1; i = i / 2) {
       if (cellSizeSamples > i) {
         cellSizeSamples = i * 2;
         break;
@@ -572,14 +558,14 @@ TweenEditor.prototype.calcCellSize = function () {
     }
   }
 
-  var samplesToPx = function (samples) {
+  const samplesToPx = function (samples) {
     return (samples * self.options.gridWidth) / (self.endTime - self.startTime);
   };
 
-  var cellSizePx = samplesToPx(cellSizeSamples);
-  var firstCellNumber = Math.ceil(this.startTime / cellSizeSamples);
-  var firstCellStart = firstCellNumber * cellSizeSamples;
-  var firsetCellOffsetPX = samplesToPx(firstCellStart - this.startTime);
+  const cellSizePx = samplesToPx(cellSizeSamples);
+  const firstCellNumber = Math.ceil(this.startTime / cellSizeSamples);
+  const firstCellStart = firstCellNumber * cellSizeSamples;
+  const firsetCellOffsetPX = samplesToPx(firstCellStart - this.startTime);
 
   return {
     px: cellSizePx,
@@ -593,10 +579,10 @@ TweenEditor.prototype.samplesToTick = function (samples) {
   if (samples < 0) return "";
 
   samples = Math.floor(samples);
-  var seconds = Math.floor(samples / 48000);
-  var minutes = Math.floor(seconds / 60);
-  var samples = samples % 48000;
-  var modseconds = (seconds % 60).toString().padStart(2, "0");
+  const seconds = Math.floor(samples / 48000);
+  const minutes = Math.floor(seconds / 60);
+  samples = samples % 48000;
+  const modseconds = (seconds % 60).toString().padStart(2, "0");
 
   if (minutes) return minutes + ":" + modseconds + "s";
   if (samples) return seconds + "." + samples;
@@ -604,17 +590,17 @@ TweenEditor.prototype.samplesToTick = function (samples) {
 };
 
 TweenEditor.prototype.DrawGrid = function () {
-  var ctx = this.GetContextFromCache("grid");
+  const ctx = this.GetContextFromCache("grid");
   ctx.strokeStyle = "#ccc";
 
-  var cellSize = this.calcCellSize();
+  const cellSize = this.calcCellSize();
 
-  var stepCount = 16;
-  var width = this.options.gridWidth;
-  var height = this.options.gridHeight;
+  let stepCount = 16;
+  const width = this.options.gridWidth;
+  const height = this.options.gridHeight;
 
-  for (var i = stepCount; i >= 0; i--) {
-    var x = Math.floor(
+  for (let i = stepCount; i >= 0; i--) {
+    const x = Math.floor(
       i * cellSize.px + this.options.marginLeft + cellSize.offset,
     );
     this.DrawLine(
@@ -625,18 +611,18 @@ TweenEditor.prototype.DrawGrid = function () {
       height + this.options.marginTop,
     );
 
-    var text = this.samplesToTick(i * cellSize.samples + cellSize.start);
-    var textWidth = ctx.measureText(text).width;
+    const text = this.samplesToTick(i * cellSize.samples + cellSize.start);
+    const textWidth = ctx.measureText(text).width;
 
-    var textY = height + this.options.fontSize + 5;
+    const textY = height + this.options.fontSize + 5;
     //if (i % 2 == 0)
     this.Echo(ctx, text, x - textWidth / 2, textY);
   }
 
   stepCount = this.options.gridVSubdiv;
-  var vstep = height / stepCount;
-  for (var i = stepCount; i >= 0; i--) {
-    var y = Math.floor(i * vstep) + this.options.marginTop;
+  const vstep = height / stepCount;
+  for (let i = stepCount; i >= 0; i--) {
+    const y = Math.floor(i * vstep) + this.options.marginTop;
     if (i == stepCount / 2) ctx.strokeStyle = "#0c0";
     this.DrawLine(
       ctx,
@@ -647,7 +633,7 @@ TweenEditor.prototype.DrawGrid = function () {
     );
     if (i == stepCount / 2) ctx.strokeStyle = "#ccc";
 
-    var stepSize = (this.options.max - this.options.min) / stepCount;
+    const stepSize = (this.options.max - this.options.min) / stepCount;
     if (i % 2 == 0)
       this.Echo(
         ctx,
@@ -659,21 +645,21 @@ TweenEditor.prototype.DrawGrid = function () {
 
   ctx.strokeStyle = "rgb(255, 140, 0)";
   ctx.fillStyle = "rgba(255, 165, 0, 0.2)";
-  var x = Math.floor(this.mouse.x);
+  const cursorX = Math.floor(this.mouse.x);
   this.DrawLine(
     ctx,
-    x,
+    cursorX,
     this.options.marginTop,
-    x,
+    cursorX,
     this.options.gridHeight + this.options.marginTop,
   );
   if (this.mouse.drag && this.mouse.button == 0) {
-    var x1 = this.timestampToX(this.mouse.time);
+    const x1 = this.timestampToX(this.mouse.time);
     this.DrawBox(
       ctx,
       x1,
       this.options.marginTop,
-      x,
+      cursorX,
       this.options.gridHeight + this.options.marginTop,
     );
 
@@ -687,9 +673,9 @@ TweenEditor.prototype.DrawGrid = function () {
   }
 
   if (this.mouse.foundPoint != -1) {
-    var x = this.timestampToX(this.line.points[this.mouse.foundPoint].x);
-    var y = this.valueToY(this.line.points[this.mouse.foundPoint].y);
-    this.DrawAnchorHighlight(ctx, x, y);
+    const hx = this.timestampToX(this.line.points[this.mouse.foundPoint].x);
+    const hy = this.valueToY(this.line.points[this.mouse.foundPoint].y);
+    this.DrawAnchorHighlight(ctx, hx, hy);
   }
   this.ctx.drawImage(ctx.canvas, 0, 0);
 };
@@ -735,14 +721,14 @@ TweenEditor.prototype.Echo = function (ctx, text, x, y) {
 };
 
 TweenEditor.prototype.DrawData = function () {
-  var ctx = this.GetContextFromCache("lines");
+  const ctx = this.GetContextFromCache("lines");
   ctx.strokeStyle = "#000";
   this.line.Draw(ctx);
   this.ctx.drawImage(ctx.canvas, 0, 0);
 };
 
 TweenEditor.prototype.DrawTickers = function () {
-  var ctx = this.GetContextFromCache("tickers");
+  const ctx = this.GetContextFromCache("tickers");
   ctx.strokeStyle = "#000";
 
   this.ctx.drawImage(ctx.canvas, 0, 0);
@@ -772,16 +758,16 @@ TweenEditor.prototype.RoundRect = function (ctx, x, y, width, height, radius) {
 };
 
 TweenEditor.prototype.DrawTag = function (ctx, x, y, text) {
-  var textW = ctx.measureText(text).width;
-  var textH = ctx.measureText("M").width;
-  var boxW = textW + textH;
-  var boxH = textH * 1.5;
-  var boxX = x - boxW / 2;
-  var boxY = y - boxH - boxH / 2;
+  const textW = ctx.measureText(text).width;
+  const textH = ctx.measureText("M").width;
+  const boxW = textW + textH;
+  const boxH = textH * 1.5;
+  const boxX = x - boxW / 2;
+  let boxY = y - boxH - boxH / 2;
   if (boxY < 10) boxY = y + boxH + textH / 2;
 
-  var textX = boxX + boxW / 2 - textW / 2;
-  var textY = boxY + boxH / 2 + textH / 2;
+  const textX = boxX + boxW / 2 - textW / 2;
+  const textY = boxY + boxH / 2 + textH / 2;
   ctx.fillStyle = "#FFB356";
   this.RoundRect(ctx, boxX, boxY, boxW, boxH, 2);
   ctx.fillStyle = "#000";

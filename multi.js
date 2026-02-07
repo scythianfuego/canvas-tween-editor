@@ -1,20 +1,20 @@
 const ready = () => {
-  var storage = new Storage();
+  const storage = new Storage();
 
   $(".left-right-counter").each(function (index, el) {
-    var alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
-    var leftArrow = $(
+    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+    const leftArrow = $(
       '<i class="fa fa-chevron-circle-left fakelink left-arrow"></i>',
     );
-    var rightArrow = $(
+    const rightArrow = $(
       '<i class="fa fa-chevron-circle-right fakelink right-arrow"></i>',
     );
-    var input = $(
+    const input = $(
       '<input class="left-right-counter-value" size="1" type="text">',
     ).val(alphabet[0]);
     $(this).append(leftArrow).append(input).append(rightArrow);
     rightArrow.click(function (event) {
-      var index = alphabet.indexOf(input.val());
+      let index = alphabet.indexOf(input.val());
       if (index != -1 && index < alphabet.length - 1) {
         input.trigger("beforechange");
         input.val(alphabet[++index]);
@@ -22,7 +22,7 @@ const ready = () => {
       }
     });
     leftArrow.click(function (event) {
-      var index = alphabet.indexOf(input.val());
+      let index = alphabet.indexOf(input.val());
       if (index != -1 && index > 0) {
         input.trigger("beforechange");
         input.val(alphabet[--index]);
@@ -32,15 +32,15 @@ const ready = () => {
   });
 
   $(window).load(function () {
-    var window_height = $(window).height();
-    var top_height = Math.floor((2 * window_height) / 3);
-    var bottom_height = Math.floor(window_height / 3);
-    var small_height = Math.floor(top_height / 7);
-    var big_height = Math.floor(2 * small_height);
+    const window_height = $(window).height();
+    const top_height = Math.floor((2 * window_height) / 3);
+    const bottom_height = Math.floor(window_height / 3);
+    const small_height = Math.floor(top_height / 7);
+    const big_height = Math.floor(2 * small_height);
 
-    var height = 100;
-    var width = $("#onoff").width();
-    var adjust_width = $("#adjust").width();
+    const height = 100;
+    const width = $("#onoff").width();
+    const adjust_width = $("#adjust").width();
 
     $("#onoff").height(small_height);
     $("#frequency").height(big_height);
@@ -48,8 +48,8 @@ const ready = () => {
     $("#iw").height(big_height);
     $("#adjust").height(bottom_height);
 
-    var pointSelected = null;
-    var onPointSelection = function (point) {
+    let pointSelected = null;
+    const onPointSelection = function (point) {
       if (point) {
         pointSelected = point;
         $("#point_time").val(point.formatX());
@@ -60,11 +60,11 @@ const ready = () => {
       }
     };
 
-    var setPoint = function (event) {
+    const setPoint = function (event) {
       if (!pointSelected) return;
 
-      var time = $("#point_time").val();
-      var value = $("#point_value").val();
+      const time = $("#point_time").val();
+      const value = $("#point_value").val();
       pointSelected.formatX(time).formatY(value);
     };
 
@@ -76,7 +76,7 @@ const ready = () => {
       if (event.key === "Enter") setPoint();
     });
 
-    var editors = {
+    const editors = {
       onoff: new TweenEditor($("#onoff").get(0), {
         onPointSelection: onPointSelection,
         height: small_height,
@@ -122,8 +122,8 @@ const ready = () => {
     TweenEditor.link([editors.onoff, editors.freq, editors.amp, editors.iw]);
     editors.adjust.cleanTags("AAAA");
 
-    var currentTag = function () {
-      var retval =
+    const currentTag = function () {
+      const retval =
         $(
           ".left-right-counter[data-track=onoff] .left-right-counter-value",
         ).val() +
@@ -138,13 +138,13 @@ const ready = () => {
     };
 
     $(".left-right-counter-value").on("beforechange", function (event) {
-      var track = $(this).parent().attr("data-track");
+      const track = $(this).parent().attr("data-track");
       storage.setData(track, $(this).val(), editors[track].getPoints());
       editors.adjust.setTag(currentTag());
     });
 
     $(".left-right-counter-value").on("change", function (event) {
-      var track = $(this).parent().attr("data-track");
+      const track = $(this).parent().attr("data-track");
       editors[track].setPoints(storage.getData(track, $(this).val()));
       editors.adjust.setTag(currentTag());
     });
@@ -158,21 +158,21 @@ const ready = () => {
       editors.adjust.cleanTags("AAAA");
     });
 
-    var trackCount = 0;
-    var updateTrackList = function () {
+    let trackCount = 0;
+    const updateTrackList = function () {
       trackCount = 0;
       $("#load_name").html("");
       for (const i of Object.keys(localStorage)) {
-        var o = $("<option>").attr("name", i).text(i);
+        const o = $("<option>").attr("name", i).text(i);
         $("#load_name").append(o);
         trackCount++;
       }
     };
     updateTrackList();
 
-    var storeCurrent = function () {
+    const storeCurrent = function () {
       //store all
-      var tag = currentTag().split("");
+      const tag = currentTag().split("");
       storage.setData("onoff", tag[0], editors["onoff"].getPoints());
       storage.setData("freq", tag[1], editors["freq"].getPoints());
       storage.setData("amp", tag[2], editors["amp"].getPoints());
@@ -180,9 +180,9 @@ const ready = () => {
       storage.setData("adjust", "A", editors["adjust"].getPoints());
     };
 
-    var exportTrack = function () {
+    const exportTrack = function () {
       storeCurrent();
-      var text = storage.export();
+      const text = storage.export();
       $("#export_data").val(text);
     };
 
@@ -203,14 +203,14 @@ const ready = () => {
     });
 
     $("#btn-save").click(function (event) {
-      var name = $("#save_name").val();
-      var track = storage.getAll();
+      const name = $("#save_name").val();
+      const track = storage.getAll();
       localStorage.setItem(name, JSON.stringify(track));
       updateTrackList();
     });
 
     $("#btn-delete").click(function (event) {
-      var name = $("#load_name").val();
+      const name = $("#load_name").val();
       if (name && confirm("Delete " + name + "?")) {
         localStorage.removeItem(name);
         updateTrackList();
@@ -218,9 +218,9 @@ const ready = () => {
     });
 
     $("#btn-load").click(function (event) {
-      var name = $("#load_name").val();
+      const name = $("#load_name").val();
       if (name) {
-        var track = JSON.parse(localStorage.getItem(name));
+        const track = JSON.parse(localStorage.getItem(name));
         storage.setAll(track);
 
         editors["onoff"].setPoints(storage.getData("onoff", "A"));
