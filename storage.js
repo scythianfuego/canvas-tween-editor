@@ -1,36 +1,30 @@
-var Storage = function() {
-	this.data = {};
-}
+var Storage = function () {
+  this.data = {};
+};
 
-Storage.prototype.setData = function(track, index, data) {
-	if (!this.data[track])
-		this.data[track] = {};
+Storage.prototype.setData = function (track, index, data) {
+  if (!this.data[track]) this.data[track] = {};
 
-	var track = this.data[track];
-	track[index] = data;
-}
+  var track = this.data[track];
+  track[index] = data;
+};
 
-Storage.prototype.getData = function(track, index) {
-	var track = this.data[track];
-	if (track[index])
-		return track[index];
+Storage.prototype.getData = function (track, index) {
+  var track = this.data[track];
+  if (track[index]) return track[index];
 
-	return [];
-}
+  return [];
+};
 
-Storage.prototype.getAll = function() {
-	return this.data;
-}
+Storage.prototype.getAll = function () {
+  return this.data;
+};
 
-Storage.prototype.setAll = function(data) {
-	return this.data = data;
-}
+Storage.prototype.setAll = function (data) {
+  return (this.data = data);
+};
 
-
-Storage.prototype.getUndoData = function() {
-
-}
-
+Storage.prototype.getUndoData = function () {};
 
 /*
 point value = 0xffff -> special
@@ -59,64 +53,67 @@ struct trackDataEx {
 	uint16_t[segments_count] point_value;
 }
 */
-Storage.prototype.export = function() {
-	var segments_count = 0;
-	var loops_count = 0;
+Storage.prototype.export = function () {
+  var segments_count = 0;
+  var loops_count = 0;
 
-	var adjust = this.data['adjust']['A'];
-	var tracks = [ 'onoff', 'freq', 'amp', 'iw'];
+  var adjust = this.data["adjust"]["A"];
+  var tracks = ["onoff", "freq", "amp", "iw"];
 
-	//determine used loops
-	var used_loops = [[],[],[],[]];
-	for (var i = 0; i < adjust.length; i++) {
-		if (adjust[i].tag) {
-			tagdata = adjust[i].tag.split('');
-			for (var j = 0; j < 4; j++) {
-				if (used_loops[j].indexOf(tagdata[j]) == -1)
-					used_loops[j].push(tagdata[j]);
-			};
-		}
-	};
+  //determine used loops
+  var used_loops = [[], [], [], []];
+  for (var i = 0; i < adjust.length; i++) {
+    if (adjust[i].tag) {
+      tagdata = adjust[i].tag.split("");
+      for (var j = 0; j < 4; j++) {
+        if (used_loops[j].indexOf(tagdata[j]) == -1)
+          used_loops[j].push(tagdata[j]);
+      }
+    }
+  }
 
-	//push segments
-	var loops = [[],[],[],[]];
-	var segments = [];
-	for (var j = 0; j < 4; j++) {
-		for (var i = 0; i < used_loops[j].length; i++) {
-			var trackdata = this.data[tracks[j]];
-			var points = trackdata[used_loops[j][i]];
+  //push segments
+  var loops = [[], [], [], []];
+  var segments = [];
+  for (var j = 0; j < 4; j++) {
+    for (var i = 0; i < used_loops[j].length; i++) {
+      var trackdata = this.data[tracks[j]];
+      var points = trackdata[used_loops[j][i]];
 
-			loops[j][i] = segments.length;
-			segments = segments.concat(points);
+      loops[j][i] = segments.length;
+      segments = segments.concat(points);
 
-			//insert loop-to
-			segments.push({x : (0x01000000 + loops[j][i]), y : 0xffff })
-		}
-	}
+      //insert loop-to
+      segments.push({ x: 0x01000000 + loops[j][i], y: 0xffff });
+    }
+  }
 
-	function toHex(d, bytes) {
-		var hex = Number(Math.floor(d)).toString(16);
-		var pad = "00000000";
-		pad = pad.slice(0, bytes*2);
-		hex = pad.substr(0, bytes*2 - hex.length) + hex; 
-		return hex;
-	}
+  function toHex(d, bytes) {
+    var hex = Number(Math.floor(d)).toString(16);
+    var pad = "00000000";
+    pad = pad.slice(0, bytes * 2);
+    hex = pad.substr(0, bytes * 2 - hex.length) + hex;
+    return hex;
+  }
 
-	var out = '';
-	out += '//loops\n';
-	for (var i = 0; i < loops[0].length; i++) {	//point_time
-		out += '0x' + toHex(loops[0][i], 2) + ', ';
-		out += '0x' + toHex(loops[1][i], 2) + ', ';
-		out += '0x' + toHex(loops[2][i], 2) + ', ';
-		out += '0x' + toHex(loops[3][i], 2) + ', ';
-	}
-	out += '\n//time\n';
-	for (var i = 0; i < segments.length; i++) {	//point_time
-		out += '0x' + toHex(segments[i].x, 4) + ', ';
-	}
-	out += '\n//value\n';
-	for (var i = 0; i < segments.length; i++) {	//point_value
-		out += '0x' + toHex(segments[i].y, 2) + ', ';
-	}
-	return out;
-}
+  var out = "";
+  out += "//loops\n";
+  for (var i = 0; i < loops[0].length; i++) {
+    //point_time
+    out += "0x" + toHex(loops[0][i], 2) + ", ";
+    out += "0x" + toHex(loops[1][i], 2) + ", ";
+    out += "0x" + toHex(loops[2][i], 2) + ", ";
+    out += "0x" + toHex(loops[3][i], 2) + ", ";
+  }
+  out += "\n//time\n";
+  for (var i = 0; i < segments.length; i++) {
+    //point_time
+    out += "0x" + toHex(segments[i].x, 4) + ", ";
+  }
+  out += "\n//value\n";
+  for (var i = 0; i < segments.length; i++) {
+    //point_value
+    out += "0x" + toHex(segments[i].y, 2) + ", ";
+  }
+  return out;
+};
