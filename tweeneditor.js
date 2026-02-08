@@ -11,7 +11,7 @@ class MouseInfo {
     this.cursor = "auto";
     this.foundPoint = -1;
 
-    this.set = function (obj2) {
+    this.set = (obj2) => {
       for (const attrname of Object.keys(obj2)) {
         this[attrname] = obj2[attrname];
       }
@@ -75,12 +75,13 @@ class TweenEditor {
     this.startTime = this.options.startTime;
     this.endTime = this.options.endTime;
 
-    document.body.addEventListener("mousemove", this.onmousemove());
-    document.body.addEventListener("mousedown", this.onmousedown());
-    document.body.addEventListener("mouseup", this.onmouseup());
-    //element.onmousemove = this.onmousemove();
-    //element.onmousedown = this.onmousedown();
-    //element.onmouseup = this.onmouseup();
+    this.onmousemovehandler = this.onmousemove();
+    this.onmousedownhandler = this.onmousedown();
+    this.onmouseuphandler = this.onmouseup();
+    document.body.addEventListener("mousemove", this.onmousemovehandler);
+    document.body.addEventListener("mousedown", this.onmousedownhandler);
+    document.body.addEventListener("mouseup", this.onmouseuphandler);
+
     element.oncontextmenu = this.oncontextmenu();
     this.dblclick = this.ondblclick();
     element.onwheel = this.onmousewheel();
@@ -145,10 +146,13 @@ class TweenEditor {
 
   destroy() {
     window.cancelAnimationFrame(this.frameRequest);
+    document.body.removeEventListener("mousemove", this.onmousemovehandler);
+    document.body.removeEventListener("mousedown", this.onmousedownhandler);
+    document.body.removeEventListener("mouseup", this.onmouseuphandler);
   }
 
   updateAnimationFunc(self) {
-    const result = function (timestamp) {
+    const result = (timestamp) => {
       if (self.animForceUpdate) {
         self.animLastFrameTimestamp = timestamp;
         self.animForceUpdate = 0;
@@ -197,116 +201,114 @@ class TweenEditor {
 
   onmousewheel() {
     const self = this;
-    return function (event) {
+    return (event) => {
       event.preventDefault();
       self.Zoom(event);
     };
   }
 
   onmousemove() {
-    const self = this;
-    const handler = function (event) {
-      if (event.target != self.element.getElementsByTagName("canvas")[0])
+    return (event) => {
+      if (event.target != this.element.getElementsByTagName("canvas")[0])
         return;
 
-      self.animForceUpdate = 1;
+      this.animForceUpdate = 1;
       const x = event.offsetX;
       const y = event.offsetY;
-      const ts = self.xToTimestamp(x);
-      self.comment(
-        self.formatTs(ts) +
+      const ts = this.xToTimestamp(x);
+      this.comment(
+        this.formatTs(ts) +
           "&emsp;" +
-          self.formatTs(self.startTime) +
+          this.formatTs(this.startTime) +
           "&emsp;" +
-          self.formatTs(self.endTime) +
+          this.formatTs(this.endTime) +
           "&emsp;",
       );
       const mouse = { x: x, y: y };
-      self.mouse.set(mouse);
-      self.emitEvent("mouse", mouse);
+      this.mouse.set(mouse);
+      this.emitEvent("mouse", mouse);
 
-      const foundPoint = self.line.findPointAt(x, y);
-      if (!self.mouse.pressed) {
-        self.mouse.set({ foundPoint: foundPoint });
-        if (foundPoint != -1) self.mouse.set({ cursor: "pointer" });
-        else self.mouse.set({ cursor: "auto" });
+      const foundPoint = this.line.findPointAt(x, y);
+      if (!this.mouse.pressed) {
+        this.mouse.set({ foundPoint: foundPoint });
+        if (foundPoint != -1) this.mouse.set({ cursor: "pointer" });
+        else this.mouse.set({ cursor: "auto" });
       }
 
       //drag detection: antijitter 5px;
       if (
-        (Math.abs(self.mouse.originalX - x) > 5 ||
-          Math.abs(self.mouse.originalY - y) > 5) &&
-        !self.mouse.drag &&
-        !self.mouse.pointDrag &&
-        self.mouse.pressed
+        (Math.abs(this.mouse.originalX - x) > 5 ||
+          Math.abs(this.mouse.originalY - y) > 5) &&
+        !this.mouse.drag &&
+        !this.mouse.pointDrag &&
+        this.mouse.pressed
       ) {
-        if (self.mouse.foundPoint == -1) {
-          self.mouse.drag = true;
+        if (this.mouse.foundPoint == -1) {
+          this.mouse.drag = true;
         } else {
-          self.mouse.pointDrag = true;
-          self.mouse.pointDragAnchor = self.mouse.foundPoint;
-          self.line.highlightPoint(self.mouse.foundPoint);
-          self.line.beforeMove(self.mouse.pointDragAnchor);
+          this.mouse.pointDrag = true;
+          this.mouse.pointDragAnchor = this.mouse.foundPoint;
+          this.line.highlightPoint(this.mouse.foundPoint);
+          this.line.beforeMove(this.mouse.pointDragAnchor);
         }
       }
 
-      if (!self.mouse.drag && !self.mouse.pointDrag) return; //all the other actions are made in onclick
+      if (!this.mouse.drag && !this.mouse.pointDrag) return; //all the other actions are made in onclick
 
-      if (self.mouse.button == 0 && self.mouse.pressed) {
+      if (this.mouse.button == 0 && this.mouse.pressed) {
         //left
 
-        if (self.mouse.pointDrag) {
+        if (this.mouse.pointDrag) {
           //point dragging
-          const px = self.xToTimestamp(x);
-          const py = self.yToValue(y);
-          self.line.movePoints(self.mouse.pointDragAnchor, px, py);
+          const px = this.xToTimestamp(x);
+          const py = this.yToValue(y);
+          this.line.movePoints(this.mouse.pointDragAnchor, px, py);
 
-          if (self.line.highlighted.length == 1 && self.onPointSelection) {
-            //self.onPointSelection(self.line.points[self.line.highlighted], self.line.highlighted);
-            self.onPointSelection(self.line.smartPoint(self.line.highlighted));
+          if (this.line.highlighted.length == 1 && this.onPointSelection) {
+            this.onPointSelection(
+              this.line.smartPoint(this.line.highlighted[0]),
+            );
           }
 
           return;
         }
 
         //range selection
-        const x1 = self.mouse.time;
+        const x1 = this.mouse.time;
         const x2 = ts;
-        self.line.clearHighlight();
-        self.line.highlightRange(x1, x2);
+        this.line.clearHighlight();
+        this.line.highlightRange(x1, x2);
 
-        if (self.onPointSelection) {
-          self.onPointSelection(null);
+        if (this.onPointSelection) {
+          this.onPointSelection(null);
         }
       }
 
-      if (self.mouse.button == 2 && self.mouse.pressed) {
+      if (this.mouse.button == 2 && this.mouse.pressed) {
         //right
 
-        const t = self.xToTimestamp(x);
-        const delta = self.mouse.time - t;
-        self.startTime = self.mouse.startTime + delta;
-        self.endTime = self.mouse.endTime + delta;
+        const t = this.xToTimestamp(x);
+        const delta = this.mouse.time - t;
+        this.startTime = this.mouse.startTime + delta;
+        this.endTime = this.mouse.endTime + delta;
         const rightMouse = {
-          startTime: self.startTime,
-          endTime: self.endTime,
+          startTime: this.startTime,
+          endTime: this.endTime,
           cursor: "move",
           drag: true,
         };
-        self.mouse.set(rightMouse);
-        self.emitEvent("time", {
-          startTime: self.startTime,
-          endTime: self.endTime,
+        this.mouse.set(rightMouse);
+        this.emitEvent("time", {
+          startTime: this.startTime,
+          endTime: this.endTime,
         });
       }
     };
-
-    return handler;
   }
 
   onmousedown() {
     const self = this;
-    const handler = function (event) {
+    const handler = (event) => {
       if (event.target != self.element.getElementsByTagName("canvas")[0])
         return;
 
@@ -317,13 +319,10 @@ class TweenEditor {
       const t = self.xToTimestamp(x);
 
       const foundPoint = self.line.findPointAt(x, y);
-      setTimeout(function () {
-        if (foundPoint != -1) {
-          self.mouse.set({ cursor: "move" });
-        } else {
-          self.mouse.set({ cursor: "text" });
-        }
-      }, 10);
+      setTimeout(
+        () => self.mouse.set({ cursor: foundPoint != -1 ? "move" : "text" }),
+        10,
+      );
 
       if (foundPoint != -1 && !self.line.highlighted.includes(foundPoint))
         self.line.clearHighlight(); //clear previous selection
@@ -345,12 +344,8 @@ class TweenEditor {
 
   onmouseup() {
     const self = this;
-    const handler = function (event) {
-      //if (event.target != self.element.getElementsByTagName('canvas')[0])
-      //    return;
-
+    const handler = (event) => {
       const x = event.offsetX;
-      const y = event.offsetY;
       self.mouse.set({
         pressed: false,
         cursor: "auto",
@@ -360,15 +355,11 @@ class TweenEditor {
         self.mouse.set({ drag: false, pointDrag: false }); //reset drag event
       }
 
-      //if (self.line.highlighted.length == 1)
-      //    self.line.clearHighlight();
-
       if (Math.abs(self.mouse.originalX - x) < 3) {
         //click
         if (self.mouse.button == 0) self.onleftclick(event);
         if (self.mouse.button == 2) self.onrightclick(event);
       }
-      //event.preventDefault();
     };
     return handler;
   }
@@ -421,30 +412,29 @@ class TweenEditor {
       self.line.deletePoint(point);
       this.mouse.foundPoint = -1;
       self.animForceUpdate = 1;
+    } else {
+      // reset zoom
+      self.dblclick();
     }
-    self.dblclick();
   }
 
-  oncontextmenu(event) {
-    const handler = function (event) {
-      event.preventDefault();
-    };
-    return handler;
+  oncontextmenu() {
+    return (event) => event.preventDefault();
   }
 
   ondblclick() {
     const self = this;
-    let timeout = 0,
-      clicked = false;
-    return function () {
+    let timeout = 0;
+    let clicked = false;
+    return () => {
       if (clicked) {
         clearTimeout(timeout);
         clicked = false;
-        if (self.line.points.length > 1) {
-          self.endTime = self.line.points[self.line.points.length - 1].x;
-        } else {
-          self.endTime = 48000 * 10 * 1;
-        }
+        self.endTime =
+          self.line.points.length > 1
+            ? self.line.points[self.line.points.length - 1].x
+            : 48000 * 10 * 1;
+
         self.startTime = 0;
         self.animForceUpdate = 1;
         self.emitEvent("time", {
@@ -453,9 +443,7 @@ class TweenEditor {
         });
       } else {
         clicked = true;
-        timeout = setTimeout(function () {
-          clicked = false;
-        }, 300);
+        timeout = setTimeout(() => (clicked = false), 300);
       }
     };
   }
@@ -515,7 +503,7 @@ class TweenEditor {
     );
   }
 
-  Zoom(event, external) {
+  Zoom(event) {
     const self = this;
 
     const x = event.offsetX;
@@ -536,9 +524,14 @@ class TweenEditor {
     });
   }
 
+  static canvasCache = {};
+
   GetContextFromCache(name) {
-    this.canvasCache = {};
-    const canvasTemp = document.createElement("canvas");
+    if (!TweenEditor.canvasCache[name]) {
+      const canvas = new OffscreenCanvas(this.width, this.height);
+      TweenEditor.canvasCache[name] = canvas;
+    }
+    const canvasTemp = TweenEditor.canvasCache[name];
     canvasTemp.width = this.width;
     canvasTemp.height = this.height;
     const ctx = canvasTemp.getContext("2d");
@@ -547,7 +540,6 @@ class TweenEditor {
   }
 
   calcCellSize() {
-    const self = this;
     const vStepCount = this.options.gridVSubdiv;
     const minCellSizePx = (3 * this.options.gridHeight) / vStepCount; //square cell w=h
     const hStepCount = Math.floor(this.options.gridWidth / minCellSizePx);
@@ -566,12 +558,8 @@ class TweenEditor {
       }
     }
 
-    const samplesToPx = function (samples) {
-      return (
-        (samples * self.options.gridWidth) / (self.endTime - self.startTime)
-      );
-    };
-
+    const samplesToPx = (samples) =>
+      (samples * this.options.gridWidth) / (this.endTime - this.startTime);
     const cellSizePx = samplesToPx(cellSizeSamples);
     const firstCellNumber = Math.ceil(this.startTime / cellSizeSamples);
     const firstCellStart = firstCellNumber * cellSizeSamples;
@@ -691,6 +679,7 @@ class TweenEditor {
   }
 
   DrawBox(ctx, sx, sy, ex, ey) {
+    ctx.beginPath();
     ctx.rect(sx, sy, ex - sx, ey - sy);
     ctx.fill();
   }

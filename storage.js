@@ -12,7 +12,7 @@ class Storage {
 
   getData(track, index) {
     const t = this.data[track];
-    if (t[index]) return t[index];
+    if (t && t[index]) return t[index];
 
     return [];
   }
@@ -21,9 +21,9 @@ class Storage {
     return this.data;
   }
 
-  setAll = function (data) {
-    return (this.data = data);
-  };
+  setAll(data) {
+    this.data = data;
+  }
 
   getUndoData() {}
 
@@ -89,11 +89,10 @@ class Storage {
       }
     }
 
-    function toHex(d, bytes) {
-      return Number(Math.floor(d))
+    const toHex = (d, bytes) =>
+      Number(Math.floor(d))
         .toString(16)
         .padStart(bytes * 2, "0");
-    }
 
     let out = "";
     out += "//loops\n";

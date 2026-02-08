@@ -213,7 +213,7 @@ class TweenPolyline {
         this.highlighted.push(i);
   }
 
-  clearHighlight(i) {
+  clearHighlight() {
     this.highlighted = [];
   }
 

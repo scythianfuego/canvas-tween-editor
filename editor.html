@@ -13,12 +13,13 @@
         width: 600px;
       }
     </style>
-    <script type="text/javascript" src="editor.js"></script>
+    <script type="text/javascript" src="tweenpolyline.js"></script>
+    <script type="text/javascript" src="tweeneditor.js"></script>
     <script type="text/javascript">
-      window.onload = function () {
+      window.onload = () => {
         const el = document.getElementById("gr");
         const options = {};
-        const pp = new LineEditor(el, null, options);
+        const pp = new TweenEditor(el, options);
       };
     </script>
   </head>

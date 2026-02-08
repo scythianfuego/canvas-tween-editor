@@ -46,7 +46,7 @@ const onLoad = () => {
   setHeight("#adjust", bottom_height);
 
   let pointSelected = null;
-  const onPointSelection = function (point) {
+  const onPointSelection = (point) => {
     if (point) {
       pointSelected = point;
       setValue("#point_time", point.formatX());
@@ -57,7 +57,7 @@ const onLoad = () => {
     }
   };
 
-  const setPoint = function (event) {
+  const setPoint = (event) => {
     if (!pointSelected) return;
 
     const time = getValue("#point_time");
@@ -130,15 +130,15 @@ const onLoad = () => {
   };
 
   const storage = new Storage();
-  listenAll(".left-right-counter-value", "beforechange", function (event) {
+  listenAll(".left-right-counter-value", "beforechange", (event) => {
     const track = event.target.parentElement.getAttribute("data-track");
-    storage.setData(track, event.target.value, editors[track].getPoints());
+    storage.setData(track, event.detail.value, editors[track].getPoints());
     editors.adjust.setTag(currentTag());
   });
 
   listenAll(".left-right-counter-value", "afterchange", (event) => {
     const track = event.target.parentElement.getAttribute("data-track");
-    editors[track].setPoints(storage.getData(track, event.target.value));
+    editors[track].setPoints(storage.getData(track, event.detail.value));
     editors.adjust.setTag(currentTag());
   });
 
@@ -152,7 +152,7 @@ const onLoad = () => {
   });
 
   let trackCount = 0;
-  const updateTrackList = function () {
+  const updateTrackList = () => {
     trackCount = 0;
     getElement("#load_name").innerHTML = "";
     for (const i of Object.keys(localStorage)) {
@@ -165,7 +165,7 @@ const onLoad = () => {
   };
   updateTrackList();
 
-  const storeCurrent = function () {
+  const storeCurrent = () => {
     //store all
     const tag = currentTag().split("");
     storage.setData("onoff", tag[0], editors["onoff"].getPoints());
@@ -175,7 +175,7 @@ const onLoad = () => {
     storage.setData("adjust", "A", editors["adjust"].getPoints());
   };
 
-  const exportTrack = function () {
+  const exportTrack = () => {
     storeCurrent();
     const text = storage.export();
     setValue("#export_data", text);
