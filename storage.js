@@ -39,6 +39,11 @@ class Storage {
       { spd: 0, diff: 0 },
     ];
 
+    // ensure first adjust point has a default tag if none exist
+    if (adjust.length > 0 && !adjust[0].tag) {
+      adjust[0].tag = "AAAA";
+    }
+
     //determine used loops
     const used_loops = [[], [], [], []];
     for (let i = 0; i < adjust.length; i++) {
@@ -83,6 +88,7 @@ class Storage {
         .toString(16)
         .padStart(8, "0")
         .match(/.{1,2}/g)
+        .reverse()
         .reduce((acc, curr) => acc + "0x" + curr + ", ", "");
 
     // compute total size

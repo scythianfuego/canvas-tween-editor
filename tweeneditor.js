@@ -135,12 +135,9 @@ class TweenEditor {
 
   setPoints(points) {
     if (points && points.length > 0) {
-      // this.line.points = points;
-      const { max, maxUnmapped } = this.options;
-      const scale = maxUnmapped ? maxUnmapped / max : 1;
       this.line.points = points.map((p) => ({
         x: p.x,
-        y: p.y * scale,
+        y: p.y,
       }));
     } else {
       this.line.points = [];

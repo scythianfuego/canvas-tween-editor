@@ -201,6 +201,10 @@ const onLoad = () => {
 
   const exportTrack = () => {
     storeCurrent();
+    generateExportData();
+  };
+
+  const generateExportData = () => {
     const name = getValue("#save_name") || "TrackName";
     const text = storage.export(name, getInputValues());
     setValue("#export_data", text);
@@ -266,14 +270,13 @@ const onLoad = () => {
       const track = JSON.parse(localStorage.getItem(name));
       storage.setAll(track);
 
-      editors["onoff"].setPoints(storage.getData("onoff", "A"));
-      editors["freq"].setPoints(storage.getData("freq", "A"));
-      editors["amp"].setPoints(storage.getData("amp", "A"));
-      editors["iw"].setPoints(storage.getData("iw", "A"));
-      editors["adjust"].setPoints(storage.getData("adjust", "A"));
-
-      exportTrack();
-      getElement(".left-right-counter-value").value = "A";
+      editors.onoff.setPoints(storage.getData("onoff", "A"));
+      editors.freq.setPoints(storage.getData("freq", "A"));
+      editors.amp.setPoints(storage.getData("amp", "A"));
+      editors.iw.setPoints(storage.getData("iw", "A"));
+      editors.adjust.setPoints(storage.getData("adjust", "A"));
+      editors.adjust.cleanTags("AAAA");
+      generateExportData();
     }
   });
 };
