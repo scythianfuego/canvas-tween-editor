@@ -89,8 +89,8 @@ const onLoad = () => {
       width: width,
       gridVSubdiv: 8,
       min: 1,
-      max: 500,
-      units: "Hz",
+      max: 4096,
+      units: " 1/Hz",
     }),
     amp: new TweenEditor(getElement("#amplitude"), {
       onPointSelection: onPointSelection,
@@ -98,7 +98,8 @@ const onLoad = () => {
       width: width,
       gridVSubdiv: 8,
       min: 0,
-      max: 100,
+      max: 4096,
+      units: "",
     }),
     iw: new TweenEditor(getElement("#iw"), {
       onPointSelection: onPointSelection,
@@ -114,6 +115,8 @@ const onLoad = () => {
       height: bottom_height,
       width: adjust_width,
       gridVSubdiv: 8,
+      min: 1,
+      max: 255,
     }),
   };
   TweenEditor.link([editors.onoff, editors.freq, editors.amp, editors.iw]);
@@ -175,10 +178,47 @@ const onLoad = () => {
     storage.setData("adjust", "A", editors["adjust"].getPoints());
   };
 
+  const getInputValues = () => ({
+    onf_spd: parseInt(getValue("#onf_spd")) || 0,
+    frq_chg: parseInt(getValue("#frq_chg")) || 0,
+    frq_spd: parseInt(getValue("#frq_spd")) || 0,
+    amp_chg: parseInt(getValue("#amp_chg")) || 0,
+    amp_spd: parseInt(getValue("#amp_spd")) || 0,
+    iw_chg: parseInt(getValue("#iw_chg")) || 0,
+    iw_spd: parseInt(getValue("#iw_spd")) || 0,
+  });
+
+  const setInputValues = (vals) => {
+    if (!vals) return;
+    setValue("#onf_spd", vals.onf_spd || 0);
+    setValue("#frq_chg", vals.frq_chg || 0);
+    setValue("#frq_spd", vals.frq_spd || 0);
+    setValue("#amp_chg", vals.amp_chg || 0);
+    setValue("#amp_spd", vals.amp_spd || 0);
+    setValue("#iw_chg", vals.iw_chg || 0);
+    setValue("#iw_spd", vals.iw_spd || 0);
+  };
+
   const exportTrack = () => {
     storeCurrent();
-    const text = storage.export();
+    const name = getValue("#save_name") || "TrackName";
+    const text = storage.export(name, getInputValues());
     setValue("#export_data", text);
+  };
+
+  const importTrack = () => {
+    const text = getValue("#export_data");
+    if (!text || !text.trim()) return;
+    const inputValues = storage.import(text);
+    if (inputValues) {
+      setInputValues(inputValues);
+      editors["onoff"].setPoints(storage.getData("onoff", "A"));
+      editors["freq"].setPoints(storage.getData("freq", "A"));
+      editors["amp"].setPoints(storage.getData("amp", "A"));
+      editors["iw"].setPoints(storage.getData("iw", "A"));
+      editors["adjust"].setPoints(storage.getData("adjust", "A"));
+      getElement(".left-right-counter-value").value = "A";
+    }
   };
 
   listen("#export", "click", () => {
@@ -189,6 +229,14 @@ const onLoad = () => {
 
   listen("#btn-close", "click", () => {
     getElement(".modal-lock").style.display = "none";
+  });
+
+  listen("#btn-export", "click", () => {
+    exportTrack();
+  });
+
+  listen("#btn-import", "click", () => {
+    importTrack();
   });
 
   setValue("#save_name", "Track " + trackCount);

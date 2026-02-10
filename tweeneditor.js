@@ -135,7 +135,13 @@ class TweenEditor {
 
   setPoints(points) {
     if (points && points.length > 0) {
-      this.line.points = points;
+      // this.line.points = points;
+      const { max, maxUnmapped } = this.options;
+      const scale = maxUnmapped ? maxUnmapped / max : 1;
+      this.line.points = points.map((p) => ({
+        x: p.x,
+        y: p.y * scale,
+      }));
     } else {
       this.line.points = [];
       this.line.push({ x: 0, y: this.options.maxUnmapped / 2 });
@@ -593,7 +599,9 @@ class TweenEditor {
 
     const cellSize = this.calcCellSize();
 
-    let stepCount = 16;
+    let stepCount = Math.ceil(
+      (this.endTime - this.startTime) / cellSize.samples,
+    );
     const width = this.options.gridWidth;
     const height = this.options.gridHeight;
 
