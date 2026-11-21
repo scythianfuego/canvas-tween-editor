@@ -24,11 +24,16 @@ class MouseInfo {
 
 class TweenEditor {
   constructor(element, options) {
+    this.ticksPerSecond = options?.ticksPerSecond ?? 48000;
+    if (!Number.isSafeInteger(this.ticksPerSecond) || this.ticksPerSecond < 1) {
+      throw new RangeError("ticksPerSecond must be a positive integer");
+    }
+    this.tickDigits = String(this.ticksPerSecond - 1).length;
     const defaults = {
       width: 800,
       height: 250,
       startTime: 0,
-      endTime: 10 * 48000,
+      endTime: 10 * this.ticksPerSecond,
       marginTop: 5,
       marginBottom: 15,
       marginLeft: 40,
@@ -135,10 +140,7 @@ class TweenEditor {
 
   setPoints(points) {
     if (points && points.length > 0) {
-      this.line.points = points.map((p) => ({
-        x: p.x,
-        y: p.y,
-      }));
+      this.line.points = points.map((p) => ({ ...p }));
     } else {
       this.line.points = [];
       this.line.push({ x: 0, y: this.options.maxUnmapped / 2 });
@@ -172,15 +174,15 @@ class TweenEditor {
   //tools
 
   formatTs(ts) {
-    const samples = Math.floor(ts % 48000)
+    const samples = Math.floor(ts % this.ticksPerSecond)
       .toString()
-      .padStart(5, "0");
-    return Math.floor(ts / 48000) + "." + samples + "s";
+      .padStart(this.tickDigits, "0");
+    return Math.floor(ts / this.ticksPerSecond) + "." + samples + "s";
   }
 
   comment(str) {
     const el = document.getElementById("comment");
-    el.innerHTML = str;
+    if (el) el.innerHTML = str;
   }
 
   //handlers
@@ -219,14 +221,16 @@ class TweenEditor {
       const x = event.offsetX;
       const y = event.offsetY;
       const ts = this.xToTimestamp(x);
-      this.comment(
-        this.formatTs(ts) +
-          "&emsp;" +
-          this.formatTs(this.startTime) +
-          "&emsp;" +
-          this.formatTs(this.endTime) +
-          "&emsp;",
-      );
+      if (this.options.onTimelineMove) {
+        this.options.onTimelineMove({
+          time: ts,
+          startTime: this.startTime,
+          endTime: this.endTime,
+        });
+      } else {
+        const times = [ts, this.startTime, this.endTime];
+        this.comment(times.map((time) => this.formatTs(time)).join("&emsp;"));
+      }
       const mouse = { x: x, y: y };
       this.mouse.set(mouse);
       this.emitEvent("mouse", mouse);
@@ -348,6 +352,7 @@ class TweenEditor {
   onmouseup() {
     const self = this;
     const handler = (event) => {
+      if (!self.mouse.pressed) return;
       const x = event.offsetX;
       self.mouse.set({
         pressed: false,
@@ -436,7 +441,7 @@ class TweenEditor {
         self.endTime =
           self.line.points.length > 1
             ? self.line.points[self.line.points.length - 1].x
-            : 48000 * 10 * 1;
+            : self.options.endTime;
 
         self.startTime = 0;
         self.animForceUpdate = 1;
@@ -543,17 +548,18 @@ class TweenEditor {
   }
 
   calcCellSize() {
+    const rate = this.ticksPerSecond;
     const vStepCount = this.options.gridVSubdiv;
     const minCellSizePx = (3 * this.options.gridHeight) / vStepCount; //square cell w=h
     const hStepCount = Math.floor(this.options.gridWidth / minCellSizePx);
     let cellSizeSamples = (this.endTime - this.startTime) / hStepCount;
 
-    if (cellSizeSamples > 48000) {
+    if (cellSizeSamples > rate) {
       // > 1s
-      cellSizeSamples = Math.floor(cellSizeSamples / 48000) * 48000;
+      cellSizeSamples = Math.floor(cellSizeSamples / rate) * rate;
     } else {
       //
-      for (let i = 48000; i > 1; i = i / 2) {
+      for (let i = rate; i > 1; i = i / 2) {
         if (cellSizeSamples > i) {
           cellSizeSamples = i * 2;
           break;
@@ -580,9 +586,9 @@ class TweenEditor {
     if (samples < 0) return "";
 
     samples = Math.floor(samples);
-    const seconds = Math.floor(samples / 48000);
+    const seconds = Math.floor(samples / this.ticksPerSecond);
     const minutes = Math.floor(seconds / 60);
-    samples = samples % 48000;
+    samples = samples % this.ticksPerSecond;
     const modseconds = (seconds % 60).toString().padStart(2, "0");
 
     if (minutes) return minutes + ":" + modseconds + "s";

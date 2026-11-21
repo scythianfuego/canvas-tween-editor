@@ -41,6 +41,7 @@ class TweenPolyline {
       }
     };
     point.formatX = (value) => {
+      const rate = self.e.ticksPerSecond;
       if (typeof value !== "undefined") {
         let time = value.split(".");
         let samples = 0;
@@ -58,15 +59,15 @@ class TweenPolyline {
         } else {
           samples = Number(time[0]);
         }
-        time = samples + seconds * 48000 + minutes * 60 * 48000;
+        time = samples + seconds * rate + minutes * 60 * rate;
         return point.x(time);
       } else {
         const x = point.x();
-        const minutes = Math.floor(x / (48000 * 60));
-        const seconds = Math.floor((x / 48000) % 60);
-        const samples = x % 48000;
+        const minutes = Math.floor(x / (rate * 60));
+        const seconds = Math.floor((x / rate) % 60);
+        const samples = x % rate;
 
-        let xText = `${seconds}.${samples.toString().padStart(5, "0")}`;
+        let xText = `${seconds}.${samples.toString().padStart(self.e.tickDigits, "0")}`;
         if (minutes) xText = `${minutes}:${xText}`;
         return xText;
       }
