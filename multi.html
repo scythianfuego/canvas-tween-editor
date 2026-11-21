@@ -2,15 +2,36 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Linked timelines</title>
+    <title>Linked timelines demo</title>
     <link rel="stylesheet" href="styles.css" />
     <script defer src="tweenpolyline.js"></script>
     <script defer src="tweeneditor.js"></script>
     <script defer src="multi.js"></script>
   </head>
   <body>
-    <h1>Linked timelines</h1>
-    <p>Click to add a point, drag to move it, scroll to zoom, and right-drag to pan.</p>
+    <h1>Linked timelines demo</h1>
+    <p>
+      Click to add a point, drag to move it, scroll to zoom, and right-drag to pan. Click a point to select it, or drag
+      horizontally from empty space across the points you want.
+    </p>
+    <h2>Interpolation controls</h2>
+    <p>
+      Use the button below to put second of three selected points in the middle in order for sine interpolation to be
+      symmetric horizontally. Also works on more than three points:
+    </p>
+    <button type="button" id="space-points">Space points evenly in time</button>
+    <p>
+      Use the button below to set the value of the last of three selected points to the first point’s in order for sine
+      interpolation to be symmetric vertically:
+    </p>
+    <button type="button" id="align-value">Align values</button>
+    <p>
+      For sine interpolation, select 2 or 3 points. The selected points stay in place. New points bend each segment
+      above or below the straight line between its ends.
+    </p>
+    <button type="button" id="sine-up">Make upward sine</button>
+    <button type="button" id="sine-down">Make downward sine</button>
+    <button type="button" id="delete-points">Delete selected points</button>
     <h2>Position</h2>
     <div id="position"></div>
     <h2>Scale</h2>

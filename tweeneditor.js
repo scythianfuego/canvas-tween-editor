@@ -139,6 +139,8 @@ class TweenEditor {
   }
 
   setPoints(points) {
+    this.mouse.foundPoint = -1;
+    if (this.line.highlighted.length) this.finishPointEdit();
     if (points && points.length > 0) {
       this.line.points = points.map((p) => ({ ...p }));
     } else {
@@ -418,8 +420,7 @@ class TweenEditor {
     if (point != -1) {
       //select point
       self.line.deletePoint(point);
-      this.mouse.foundPoint = -1;
-      self.animForceUpdate = 1;
+      self.finishPointEdit();
     } else {
       // reset zoom
       self.dblclick();
@@ -782,6 +783,81 @@ class TweenEditor {
     this.RoundRect(ctx, boxX, boxY, boxW, boxH, 2);
     ctx.fillStyle = "#000";
     this.Echo(ctx, text, textX, textY);
+  }
+
+  selectedPointIndices() {
+    return [...this.line.highlighted].sort((a, b) => a - b);
+  }
+
+  finishPointEdit() {
+    this.line.clearHighlight();
+    this.mouse.foundPoint = -1;
+    this.setUpdate();
+    this.onPointSelection?.(null);
+  }
+
+  spaceSelectedPoints() {
+    const indices = this.selectedPointIndices();
+    if (indices.length < 3) return;
+
+    const points = this.getPoints();
+    const start = points[indices[0]].x;
+    const step = (points[indices.at(-1)].x - start) / (indices.length - 1);
+    for (let i = 1; i < indices.length - 1; i++) {
+      points[indices[i]].x = Math.round(start + i * step);
+    }
+    this.finishPointEdit();
+  }
+
+  alignLastSelectedValue() {
+    const indices = this.selectedPointIndices();
+    if (indices.length !== 3) return;
+
+    const points = this.getPoints();
+    points[indices[2]].y = points[indices[0]].y;
+    this.finishPointEdit();
+  }
+
+  static quarterSinePoints(left, right, upward) {
+    // Quarter-sine samples, spaced more tightly near the peak.
+    const samples = [[0.46, 0.661], [0.67, 0.866], [0.84, 0.968]];
+    const mirror = upward !== (right.y > left.y);
+    if (mirror) samples.reverse();
+
+    const points = [left];
+    for (const [time, value] of samples) {
+      const t = mirror ? 1 - time : time;
+      const y = left.y + (mirror ? 1 - value : value) * (right.y - left.y);
+      const x = Math.round(left.x + t * (right.x - left.x));
+      if (x > points.at(-1).x && x < right.x) {
+        points.push({ x, y });
+      }
+    }
+    points.push(right);
+    return points;
+  }
+
+  interpolateSelectedSine(upward) {
+    const indices = this.selectedPointIndices();
+    if (indices.length !== 2 && indices.length !== 3) return;
+
+    const points = this.getPoints();
+    const [first, second, third] = indices;
+    if (third === undefined && points[first].y === points[second].y) return;
+    const curve = TweenEditor.quarterSinePoints(points[first], points[second], upward);
+    if (third !== undefined) {
+      const next = TweenEditor.quarterSinePoints(points[second], points[third], upward);
+      curve.push(...next.slice(1));
+    }
+    points.splice(first, indices.at(-1) - first + 1, ...curve);
+    this.finishPointEdit();
+  }
+
+  deleteSelectedPoints() {
+    const indices = this.selectedPointIndices();
+    if (!indices.length) return;
+    for (const index of indices.reverse()) this.line.deletePoint(index);
+    this.finishPointEdit();
   }
 
   setUpdate() {

@@ -1,4 +1,5 @@
 const cursor = document.getElementById("cursor");
+let activeEditor;
 
 function createTrack(id, max, units, points) {
   const editor = new TweenEditor(document.getElementById(id), {
@@ -9,6 +10,9 @@ function createTrack(id, max, units, points) {
     max,
     maxUnmapped: max,
     units,
+    onPointSelection() {
+      activeEditor = editor;
+    },
     onTimelineMove({ time }) {
       cursor.textContent = `Cursor ${time} ms`;
     },
@@ -36,3 +40,9 @@ const opacity = createTrack("opacity", 100, "%", [
 ]);
 
 TweenEditor.link([position, scale, opacity]);
+
+document.getElementById("space-points").onclick = () => activeEditor?.spaceSelectedPoints();
+document.getElementById("align-value").onclick = () => activeEditor?.alignLastSelectedValue();
+document.getElementById("sine-up").onclick = () => activeEditor?.interpolateSelectedSine(true);
+document.getElementById("sine-down").onclick = () => activeEditor?.interpolateSelectedSine(false);
+document.getElementById("delete-points").onclick = () => activeEditor?.deleteSelectedPoints();
