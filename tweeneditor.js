@@ -252,7 +252,7 @@ class TweenEditor {
         !this.mouse.pointDrag &&
         this.mouse.pressed
       ) {
-        if (this.mouse.foundPoint == -1) {
+        if (this.mouse.button !== 0 || this.mouse.foundPoint == -1) {
           this.mouse.drag = true;
         } else {
           this.mouse.pointDrag = true;
@@ -293,20 +293,12 @@ class TweenEditor {
         }
       }
 
-      if (this.mouse.button == 2 && this.mouse.pressed) {
-        //right
-
-        const t = this.xToTimestamp(x);
-        const delta = this.mouse.time - t;
-        this.startTime = this.mouse.startTime + delta;
-        this.endTime = this.mouse.endTime + delta;
-        const rightMouse = {
-          startTime: this.startTime,
-          endTime: this.endTime,
-          cursor: "move",
-          drag: true,
-        };
-        this.mouse.set(rightMouse);
+      if ((this.mouse.button === 1 || this.mouse.button === 2) && this.mouse.pressed) {
+        const span = this.endTime - this.startTime;
+        const start = this.startTime + this.mouse.time - ts;
+        this.startTime = this.endTime >= 0 ? Math.max(0, start) : start;
+        this.endTime = this.startTime + span;
+        this.mouse.set({ cursor: "move" });
         this.emitEvent("time", {
           startTime: this.startTime,
           endTime: this.endTime,
@@ -333,7 +325,7 @@ class TweenEditor {
         10,
       );
 
-      if (foundPoint != -1 && !self.line.highlighted.includes(foundPoint))
+      if (event.button === 0 && foundPoint != -1 && !self.line.highlighted.includes(foundPoint))
         self.line.clearHighlight(); //clear previous selection
 
       const mouse = {
@@ -363,6 +355,7 @@ class TweenEditor {
 
       if (self.mouse.drag || self.mouse.pointDrag) {
         self.mouse.set({ drag: false, pointDrag: false }); //reset drag event
+        return;
       }
 
       if (Math.abs(self.mouse.originalX - x) < 3) {
@@ -517,6 +510,7 @@ class TweenEditor {
 
     const x = event.offsetX;
     const t = self.xToTimestamp(x);
+    const pinZero = event.deltaY > 0 && self.startTime <= 0 && self.endTime >= 0;
     let zoomfactor = event.deltaY > 0 ? 1 : -1; // 5% per scroll event, ignore units
     const proportion = Math.abs(self.startTime - self.endTime) * 0.05; // %
     const proportion_y =
@@ -524,6 +518,10 @@ class TweenEditor {
     zoomfactor *= proportion;
     self.endTime += zoomfactor * (1 - proportion_y);
     self.startTime -= zoomfactor * proportion_y;
+    if (pinZero) {
+      self.endTime -= self.startTime;
+      self.startTime = 0;
+    }
 
     self.animForceUpdate = 1;
 
